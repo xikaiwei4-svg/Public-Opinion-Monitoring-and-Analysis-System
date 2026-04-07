@@ -1,0 +1,26 @@
+# 基础依赖
+fastapi==0.104.1
+uvicorn==0.24.0
+sqlalchemy==2.0.23
+pymysql==1.1.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+python-dotenv==1.0.0
+python-jose==3.3.0
+passlib==1.7.4
+alembic==1.13.0
+
+# 数据处理
+pandas==2.1.4
+numpy==1.26.2
+
+# 自然语言处理
+jieba==0.42.1
+
+# 深度学习
+tensorflow==2.15.0
+tensorflow-hub==0.15.0
+
+# 其他
+python-multipart==0.0.6
+python-dateutil==2.8.2

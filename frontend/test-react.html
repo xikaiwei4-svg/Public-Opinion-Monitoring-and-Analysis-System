@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>测试React应用</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <script>
+    const { useState } = React;
+    const { createRoot } = ReactDOM;
+    
+    const App = () => {
+      const [count, setCount] = useState(0);
+      
+      return (
+        <div style={{ padding: '20px' }}>
+          <h1>React应用测试</h1>
+          <p>计数器: {count}</p>
+          <button onClick={() => setCount(count + 1)}>增加</button>
+        </div>
+      );
+    };
+    
+    const root = createRoot(document.getElementById('root'));
+    root.render(React.createElement(App));
+  </script>
+</body>
+</html>

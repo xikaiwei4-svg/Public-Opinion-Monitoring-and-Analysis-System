@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>校园舆情检测与热点话题分析系统 - 仪表盘</title>
+  <!-- 使用CDN加载所有依赖 -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  
+  <!-- Ant Design -->
+  <link rel="stylesheet" href="https://unpkg.com/antd@5.12.8/dist/reset.css">
+  <script src="https://unpkg.com/antd@5.12.8/dist/antd.min.js"></script>
+  
+  <!-- 图表库 -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background-color: #f5f5f5;
+    }
+    #root {
+      height: 100vh;
+      width: 100vw;
+    }
+    .layout {
+      height: 100vh;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      background: #fff;
+      box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      font-size: 18px;
+      font-weight: 600;
+      color: #1890ff;
+    }
+    .logo-icon {
+      margin-right: 8px;
+    }
+    .content {
+      margin: 16px;
+      padding: 24px;
+      background: #fff;
+      min-height: 280px;
+    }
+    .stat-card {
+      text-align: center;
+      padding: 16px;
+      border-radius: 4px;
+      background: #f5f5f5;
+    }
+    .stat-number {
+      font-size: 24px;
+      font-weight: 600;
+      margin: 8px 0;
+    }
+    .stat-description {
+      color: #666;
+    }
+    .chart-container {
+      height: 300px;
+      margin-top: 24px;
+    }
+    .logout-btn {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    // 导入React和其他库
+    const { useState, useEffect } = React;
+    const { Layout, Typography, Row, Col, Card, Button, Spin, Alert, Table } = antd;
+    const { Header, Content } = Layout;
+    const { Title, Paragraph } = Typography;
+    
+    // 模拟数据
+    const mockStatistics = {
+      todayOpinions: 238,
+      hotTopics: 12,
+      followers: 567,
+      positivePercentage: 65,
+      negativePercentage: 20,
+      neutralPercentage: 15
+    };
+    
+    const mockTrendData = [
+      { date: '10/1', count: 180 },
+      { date: '10/2', count: 210 },
+      { date: '10/3', count: 195 },
+      { date: '10/4', count: 240 },
+      { date: '10/5', count: 225 },
+      { date: '10/6', count: 260 },
+      { date: '10/7', count: 238 }
+    ];
+    
+    const mockPlatformData = [
+      { name: '微信', value: 45 },
+      { name: '微博', value: 30 },
+      { name: '贴吧', value: 15 },
+      { name: '论坛', value: 10 }
+    ];
+    
+    const mockHotTopics = [
+      { id: 1, title: '校园食堂新菜品评价',热度: 95, trend: 'up' },
+      { id: 2, title: '图书馆扩建计划讨论',热度: 88, trend: 'up' },
+      { id: 3, title: '校园安全问题反馈',热度: 82, trend: 'down' },
+      { id: 4, title: '新生入学指南分享',热度: 78, trend: 'up' },
+      { id: 5, title: '校园活动安排公告',热度: 75, trend: 'stable' }
+    ];
+
+    // 仪表盘组件
+    const Dashboard = () => {
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState(null);
+      const [statistics, setStatistics] = useState(mockStatistics);
+      const [trendData, setTrendData] = useState(mockTrendData);
+      const [platformData, setPlatformData] = useState(mockPlatformData);
+      const [hotTopics, setHotTopics] = useState(mockHotTopics);
+      
+      // 获取数据
+      useEffect(() => {
+        const fetchData = async () => {
+          try {
+            setLoading(true);
+            setError(null);
+            
+            // 尝试从API获取数据，如果失败则使用模拟数据
+            try {
+              // 获取统计数据
+              const statsResponse = await axios.get('http://localhost:8000/api/opinions/statistics');
+              if (statsResponse.data && statsResponse.data.data) {
+                setStatistics(statsResponse.data.data);
+              }
+            } catch (err) {
+              console.log('使用模拟统计数据');
+            }
+            
+            try {
+              // 获取趋势数据
+              const trendResponse = await axios.get('http://localhost:8000/api/trend/opinion');
+              if (trendResponse.data && trendResponse.data.data) {
+                setTrendData(trendResponse.data.data);
+              }
+            } catch (err) {
+              console.log('使用模拟趋势数据');
+            }
+            
+            try {
+              // 获取平台分布数据
+              const platformResponse = await axios.get('http://localhost:8000/api/trend/platform-distribution');
+              if (platformResponse.data && platformResponse.data.data) {
+                setPlatformData(platformResponse.data.data);
+              }
+            } catch (err) {
+              console.log('使用模拟平台分布数据');
+            }
+          } catch (err) {
+            setError('获取数据失败，请检查网络连接或稍后再试');
+            console.error('获取数据失败:', err);
+          } finally {
+            setLoading(false);
+          }
+        };
+        
+        fetchData();
+      }, []);
+      
+      // 构建趋势图表配置
+      const trendChartOption = {
+        title: {
+          text: '舆情趋势分析',
+          left: 'center'
+        },
+        tooltip: {
+          trigger: 'axis'
+        },
+        xAxis: {
+          type: 'category',
+          data: trendData.map(item => item.date)
+        },
+        yAxis: {
+          type: 'value'
+        },
+        series: [
+          {
+            name: '舆情数量',
+            type: 'line',
+            data: trendData.map(item => item.count),
+            smooth: true,
+            lineStyle: {
+              color: '#1890ff'
+            },
+            areaStyle: {
+              color: {
+                type: 'linear',
+                x: 0,
+                y: 0,
+                x2: 0,
+                y2: 1,
+                colorStops: [{
+                  offset: 0,
+                  color: 'rgba(24, 144, 255, 0.3)'
+                }, {
+                  offset: 1,
+                  color: 'rgba(24, 144, 255, 0.05)'
+                }]
+              }
+            }
+          }
+        ]
+      };
+      
+      // 构建平台分布图表配置
+      const platformChartOption = {
+        title: {
+          text: '平台分布',
+          left: 'center'
+        },
+        tooltip: {
+          trigger: 'item'
+        },
+        legend: {
+          orient: 'vertical',
+          left: 'left'
+        },
+        series: [
+          {
+            name: '平台分布',
+            type: 'pie',
+            radius: '50%',
+            data: platformData,
+            emphasis: {
+              itemStyle: {
+                shadowBlur: 10,
+                shadowOffsetX: 0,
+                shadowColor: 'rgba(0, 0, 0, 0.5)'
+              }
+            }
+          }
+        ]
+      };
+      
+      // 热点话题表格列定义
+      const topicColumns = [
+        {
+          title: '排名',
+          key: 'rank',
+          render: (_, __, index) => index + 1
+        },
+        {
+          title: '话题名称',
+          dataIndex: 'title',
+          key: 'title',
+          ellipsis: true
+        },
+        {
+          title: '热度指数',
+          dataIndex: '热度',
+          key: 'hotness'
+        },
+        {
+          title: '趋势',
+          dataIndex: 'trend',
+          key: 'trend',
+          render: (trend) => {
+            if (trend === 'up') return <span style={{ color: 'green' }}>上升</span>;
+            if (trend === 'down') return <span style={{ color: 'red' }}>下降</span>;
+            return <span>稳定</span>;
+          }
+        }
+      ];
+      
+      return (
+        <Layout className="layout">
+          <Header className="header">
+            <div className="logo">
+              <span className="logo-icon">📊</span>
+              校园舆情检测与热点话题分析系统
+            </div>
+          </Header>
+          <Content className="content">
+            {loading && (
+              <div style={{ textAlign: 'center', padding: '60px 0' }}>
+                <Spin size="large" tip="加载数据中..." />
+              </div>
+            )}
+            
+            {error && (
+              <Alert message="错误" description={error} type="error" showIcon />
+            )}
+            
+            {!loading && !error && (
+              <>
+                <Title level={3}>仪表盘概览</Title>
+                
+                {/* 统计卡片行 */}
+                <Row gutter={[16, 16]}>
+                  <Col xs={24} sm={12} md={6}>
+                    <Card className="stat-card">
+                      <div>今日舆情</div>
+                      <div className="stat-number" style={{ color: '#1890ff' }}>{statistics.todayOpinions}</div>
+                      <div className="stat-description">较昨日 +12%</div>
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} md={6}>
+                    <Card className="stat-card">
+                      <div>热点话题</div>
+                      <div className="stat-number" style={{ color: '#52c41a' }}>{statistics.hotTopics}</div>
+                      <div className="stat-description">较昨日 +2</div>
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} md={6}>
+                    <Card className="stat-card">
+                      <div>关注用户</div>
+                      <div className="stat-number" style={{ color: '#faad14' }}>{statistics.followers}</div>
+                      <div className="stat-description">较昨日 +8</div>
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} md={6}>
+                    <Card className="stat-card">
+                      <div>正面情感</div>
+                      <div className="stat-number" style={{ color: '#13c2c2' }}>{statistics.positivePercentage}%</div>
+                      <div className="stat-description">较昨日 +3%</div>
+                    </Card>
+                  </Col>
+                </Row>
+                
+                {/* 趋势分析图表行 */}
+                <Row gutter={[16, 16]} style={{ marginTop: '24px' }}>
+                  <Col xs={24} md={12}>
+                    <Card title="舆情趋势分析">
+                      <div className="chart-container" id="trend-chart"></div>
+                    </Card>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Card title="平台分布">
+                      <div className="chart-container" id="platform-chart"></div>
+                    </Card>
+                  </Col>
+                </Row>
+                
+                {/* 热点话题表格 */}
+                <Card title="热门话题排行" style={{ marginTop: '24px' }}>
+                  <Table columns={topicColumns} dataSource={hotTopics} pagination={false} />
+                </Card>
+              </>
+            )}
+            
+            {/* 登出按钮 */}
+            <Button className="logout-btn" danger>退出登录</Button>
+          </Content>
+        </Layout>
+      );
+    };
+    
+    // 渲染应用
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<Dashboard />);
+    
+    // 延迟初始化图表，确保DOM已加载
+    setTimeout(() => {
+      const trendChart = echarts.init(document.getElementById('trend-chart'));
+      trendChart.setOption({
+        title: {
+          text: '舆情趋势分析',
+          left: 'center'
+        },
+        tooltip: {
+          trigger: 'axis'
+        },
+        xAxis: {
+          type: 'category',
+          data: mockTrendData.map(item => item.date)
+        },
+        yAxis: {
+          type: 'value'
+        },
+        series: [
+          {
+            name: '舆情数量',
+            type: 'line',
+            data: mockTrendData.map(item => item.count),
+            smooth: true,
+            lineStyle: {
+              color: '#1890ff'
+            },
+            areaStyle: {
+              color: {
+                type: 'linear',
+                x: 0,
+                y: 0,
+                x2: 0,
+                y2: 1,
+                colorStops: [{
+                  offset: 0,
+                  color: 'rgba(24, 144, 255, 0.3)'
+                }, {
+                  offset: 1,
+                  color: 'rgba(24, 144, 255, 0.05)'
+                }]
+              }
+            }
+          }
+        ]
+      });
+      
+      const platformChart = echarts.init(document.getElementById('platform-chart'));
+      platformChart.setOption({
+        title: {
+          text: '平台分布',
+          left: 'center'
+        },
+        tooltip: {
+          trigger: 'item'
+        },
+        legend: {
+          orient: 'vertical',
+          left: 'left'
+        },
+        series: [
+          {
+            name: '平台分布',
+            type: 'pie',
+            radius: '50%',
+            data: mockPlatformData,
+            emphasis: {
+              itemStyle: {
+                shadowBlur: 10,
+                shadowOffsetX: 0,
+                shadowColor: 'rgba(0, 0, 0, 0.5)'
+              }
+            }
+          }
+        ]
+      });
+      
+      // 响应式调整
+      window.addEventListener('resize', () => {
+        trendChart.resize();
+        platformChart.resize();
+      });
+    }, 1000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+.app-layout {
+  min-height: 100vh;
+}
+
+.main-content {
+  margin: 0;
+  padding: 0;
+  min-height: calc(100vh - 64px);
+}
+
+.content-wrapper {
+  margin: 16px;
+  padding: 24px;
+  background: #fff;
+  border-radius: 8px;
+  min-height: calc(100vh - 150px);
+}
+
+@media (max-width: 768px) {
+  .content-wrapper {
+    margin: 8px;
+    padding: 16px;
+  }
+}

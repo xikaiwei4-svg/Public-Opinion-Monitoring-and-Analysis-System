@@ -1,0 +1,18 @@
+fastapi==0.95.0
+uvicorn==0.22.0
+pydantic==1.10.12
+motor==3.3.2  # MongoDB异步驱动
+pymongo==4.6.1  # MongoDB驱动，确保与motor兼容
+psycopg2-binary==2.9.6  # PostgreSQL驱动
+celery==5.3.1
+redis==4.5.5
+nltk==3.8.1
+spacy==3.5.3
+scikit-learn==1.3.0
+transformers==4.30.2
+pandas==2.0.3
+matplotlib==3.7.2
+sentence-transformers==2.2.2
+python-dateutil==2.8.2  # 日期时间解析库
+pyjwt==2.7.0  # JWT认证库
+pydantic-settings==2.0.3  # pydantic设置管理

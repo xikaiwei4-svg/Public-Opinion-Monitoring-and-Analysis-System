@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>校园舆情分析系统</title>
+  <!-- React 和 React DOM -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <!-- Redux Toolkit -->
+  <script crossorigin src="https://unpkg.com/@reduxjs/toolkit@1.9.5/dist/redux-toolkit.umd.min.js"></script>
+  <!-- React Redux -->
+  <script crossorigin src="https://unpkg.com/react-redux@8.1.1/dist/react-redux.umd.min.js"></script>
+  <!-- React Router -->
+  <script crossorigin src="https://unpkg.com/react-router-dom@6.14.2/umd/react-router-dom.development.js"></script>
+  <!-- Recharts -->
+  <script crossorigin src="https://unpkg.com/recharts@2.8.0/dist/recharts.min.js"></script>
+  <!-- Axios -->
+  <script crossorigin src="https://unpkg.com/axios@1.4.0/dist/axios.min.js"></script>
+  <!-- Day.js -->
+  <script crossorigin src="https://unpkg.com/dayjs@1.11.9/dayjs.min.js"></script>
+  <!-- Lodash -->
+  <script crossorigin src="https://unpkg.com/lodash@4.17.21/lodash.min.js"></script>
+  <!-- Ant Design -->
+  <link rel="stylesheet" href="https://unpkg.com/antd@5.7.0/dist/reset.css">
+  <script crossorigin src="https://unpkg.com/antd@5.7.0/dist/antd.min.js"></script>
+  
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+    .App {
+      padding: 20px;
+    }
+    .login-container {
+      max-width: 400px;
+      margin: 0 auto;
+      padding: 20px;
+      border: 1px solid #d9d9d9;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    .dashboard-container {
+      padding: 20px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .chart-container {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <script>
+    const { createSlice, configureStore, createAsyncThunk } = RTK;
+    const { useState, useEffect, useRef } = React;
+    const { createRoot } = ReactDOM;
+    const { Button, Input, Form, Card, Layout, Menu, message, Table, Avatar, Badge, Row, Col, Divider, Statistic, Progress } = antd;
+    const { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend } = Recharts;
+    const { Navigate, Route, Routes, useNavigate, useLocation, createBrowserRouter, RouterProvider } = ReactRouterDOM;
+    const { useDispatch, useSelector, Provider } = ReactRedux;
+    
+    // Mock 数据
+    const mockOpinions = [
+      { id: 1, content: '校园食堂饭菜价格上涨了', sentiment: 'negative', time: '2023-09-27 10:30', source: '微信公众号', category: '生活服务', likes: 42 },
+      { id: 2, content: '图书馆新增了很多新书，环境也改善了', sentiment: 'positive', time: '2023-09-27 09:15', source: '校园论坛', category: '学习环境', likes: 85 },
+      { id: 3, content: '宿舍空调温度调节系统需要改进', sentiment: 'negative', time: '2023-09-26 22:45', source: '匿名吐槽墙', category: '生活服务', likes: 67 },
+      { id: 4, content: '校园招聘会规模很大，来了很多知名企业', sentiment: 'positive', time: '2023-09-26 14:20', source: '微博', category: '就业信息', likes: 123 },
+      { id: 5, content: '学校网络速度太慢，经常断线', sentiment: 'negative', time: '2023-09-25 16:10', source: '校园论坛', category: '基础设施', likes: 94 },
+    ];
+    
+    const mockHotTopics = [
+      { id: 1, title: '校园食堂改革讨论', heat: 92, trend: 'up', relatedCount: 156 },
+      { id: 2, title: '期末考试安排调整', heat: 88, trend: 'up', relatedCount: 142 },
+      { id: 3, title: '新生入学指南', heat: 76, trend: 'down', relatedCount: 98 },
+      { id: 4, title: '校园安全整治行动', heat: 65, trend: 'stable', relatedCount: 78 },
+      { id: 5, title: '校园文化节活动安排', heat: 58, trend: 'up', relatedCount: 63 },
+    ];
+    
+    const mockSentimentData = [
+      { name: '正面', value: 42, color: '#52c41a' },
+      { name: '中性', value: 33, color: '#faad14' },
+      { name: '负面', value: 25, color: '#ff4d4f' },
+    ];
+    
+    const mockTrendData = [
+      { date: '9/21', positive: 38, negative: 24, neutral: 30 },
+      { date: '9/22', positive: 42, negative: 21, neutral: 37 },
+      { date: '9/23', positive: 35, negative: 30, neutral: 35 },
+      { date: '9/24', positive: 48, negative: 18, neutral: 34 },
+      { date: '9/25', positive: 40, negative: 25, neutral: 35 },
+      { date: '9/26', positive: 45, negative: 22, neutral: 33 },
+      { date: '9/27', positive: 42, negative: 25, neutral: 33 },
+    ];
+    
+    const mockCategoryData = [
+      { name: '学习环境', value: 32 },
+      { name: '生活服务', value: 28 },
+      { name: '就业信息', value: 15 },
+      { name: '基础设施', value: 18 },
+      { name: '校园活动', value: 7 },
+    ];
+    
+    // Redux Store
+    const opinionSlice = createSlice({
+      name: 'opinions',
+      initialState: {
+        list: [],
+        loading: false,
+        error: null
+      },
+      reducers: {
+        setOpinions: (state, action) => {
+          state.list = action.payload;
+        },
+        setLoading: (state, action) => {
+          state.loading = action.payload;
+        },
+        setError: (state, action) => {
+          state.error = action.payload;
+        }
+      }
+    });
+    
+    const hotTopicSlice = createSlice({
+      name: 'hotTopics',
+      initialState: {
+        list: [],
+        loading: false,
+        error: null
+      },
+      reducers: {
+        setHotTopics: (state, action) => {
+          state.list = action.payload;
+        },
+        setLoading: (state, action) => {
+          state.loading = action.payload;
+        },
+        setError: (state, action) => {
+          state.error = action.payload;
+        }
+      }
+    });
+    
+    const userSlice = createSlice({
+      name: 'user',
+      initialState: {
+        isAuthenticated: false,
+        token: null,
+        info: null
+      },
+      reducers: {
+        login: (state, action) => {
+          state.isAuthenticated = true;
+          state.token = action.payload.token;
+          state.info = action.payload.userInfo;
+        },
+        logout: (state) => {
+          state.isAuthenticated = false;
+          state.token = null;
+          state.info = null;
+        }
+      }
+    });
+    
+    // Thunks
+    const fetchOpinions = createAsyncThunk('opinions/fetchOpinions', async (_, { dispatch }) => {
+      dispatch(opinionSlice.actions.setLoading(true));
+      try {
+        // 模拟API请求
+        await new Promise(resolve => setTimeout(resolve, 500));
+        dispatch(opinionSlice.actions.setOpinions(mockOpinions));
+      } catch (error) {
+        dispatch(opinionSlice.actions.setError(error.message));
+      } finally {
+        dispatch(opinionSlice.actions.setLoading(false));
+      }
+    });
+    
+    const fetchHotTopics = createAsyncThunk('hotTopics/fetchHotTopics', async (_, { dispatch }) => {
+      dispatch(hotTopicSlice.actions.setLoading(true));
+      try {
+        // 模拟API请求
+        await new Promise(resolve => setTimeout(resolve, 500));
+        dispatch(hotTopicSlice.actions.setHotTopics(mockHotTopics));
+      } catch (error) {
+        dispatch(hotTopicSlice.actions.setError(error.message));
+      } finally {
+        dispatch(hotTopicSlice.actions.setLoading(false));
+      }
+    });
+    
+    // Store
+    const store = configureStore({
+      reducer: {
+        opinions: opinionSlice.reducer,
+        hotTopics: hotTopicSlice.reducer,
+        user: userSlice.reducer
+      }
+    });
+    
+    // Components
+    const LoginPage = () => {
+      const [loading, setLoading] = useState(false);
+      const dispatch = useDispatch();
+      const navigate = useNavigate();
+      
+      const handleLogin = () => {
+        setLoading(true);
+        // 模拟登录请求
+        setTimeout(() => {
+          dispatch(userSlice.actions.login({
+            token: 'mock-jwt-token',
+            userInfo: {
+              name: '管理员',
+              role: 'admin'
+            }
+          }));
+          message.success('登录成功');
+          navigate('/dashboard');
+          setLoading(false);
+        }, 1000);
+      };
+      
+      return (
+        <div className="login-container">
+          <h2 style={{ textAlign: 'center', marginBottom: '20px' }}>校园舆情分析系统</h2>
+          <Form>
+            <Form.Item label="用户名" name="username">
+              <Input placeholder="请输入用户名" />
+            </Form.Item>
+            <Form.Item label="密码" name="password">
+              <Input.Password placeholder="请输入密码" />
+            </Form.Item>
+            <Form.Item>
+              <Button type="primary" htmlType="submit" block onClick={handleLogin} loading={loading}>
+                登录
+              </Button>
+            </Form.Item>
+          </Form>
+        </div>
+      );
+    };
+    
+    const Dashboard = () => {
+      const dispatch = useDispatch();
+      const navigate = useNavigate();
+      const { isAuthenticated } = useSelector(state => state.user);
+      
+      useEffect(() => {
+        if (!isAuthenticated) {
+          navigate('/login');
+        }
+      }, [isAuthenticated, navigate]);
+      
+      const handleLogout = () => {
+        dispatch(userSlice.actions.logout());
+        navigate('/login');
+      };
+      
+      return (
+        <Layout className="dashboard-container">
+          <Layout.Header className="header">
+            <h1>校园舆情分析系统</h1>
+            <Button danger onClick={handleLogout}>退出登录</Button>
+          </Layout.Header>
+          
+          <Layout.Content>
+            <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
+              <Card title="总舆情数" style={{ flex: 1 }}>
+                <Statistic value={mockOpinions.length} suffix="条" />
+              </Card>
+              <Card title="热门话题数" style={{ flex: 1 }}>
+                <Statistic value={mockHotTopics.length} suffix="个" />
+              </Card>
+              <Card title="正面情绪占比" style={{ flex: 1 }}>
+                <Statistic value={42} suffix="%" />
+              </Card>
+            </div>
+            
+            <Row gutter={[16, 16]}>
+              <Col span={12}>
+                <Card title="舆情情绪分布">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={mockSentimentData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      >
+                        {mockSentimentData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </Card>
+              </Col>
+              
+              <Col span={12}>
+                <Card title="舆情趋势">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={mockTrendData}>
+                      <defs>
+                        <linearGradient id="colorPositive" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#52c41a" stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor="#52c41a" stopOpacity={0.1}/>
+                        </linearGradient>
+                        <linearGradient id="colorNegative" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#ff4d4f" stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor="#ff4d4f" stopOpacity={0.1}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Area type="monotone" dataKey="positive" stroke="#52c41a" fillOpacity={1} fill="url(#colorPositive)" name="正面" />
+                      <Area type="monotone" dataKey="negative" stroke="#ff4d4f" fillOpacity={1} fill="url(#colorNegative)" name="负面" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </Card>
+              </Col>
+            </Row>
+            
+            <Row gutter={[16, 16]}>
+              <Col span={12}>
+                <Card title="热门话题列表">
+                  <Table
+                    dataSource={mockHotTopics}
+                    rowKey="id"
+                    pagination={false}
+                    columns={[
+                      { title: '标题', dataIndex: 'title' },
+                      { 
+                        title: '热度', 
+                        dataIndex: 'heat',
+                        render: (value) => <Progress percent={value} strokeColor={value > 80 ? '#ff4d4f' : '#1890ff'} showInfo={false} />
+                      },
+                      { 
+                        title: '趋势', 
+                        dataIndex: 'trend',
+                        render: (value) => {
+                          if (value === 'up') return <Badge status="success" text="上升" />;
+                          if (value === 'down') return <Badge status="default" text="下降" />;
+                          return <Badge status="processing" text="稳定" />;
+                        }
+                      },
+                      { title: '相关舆情数', dataIndex: 'relatedCount' }
+                    ]}
+                  />
+                </Card>
+              </Col>
+              
+              <Col span={12}>
+                <Card title="舆情分类统计">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={mockCategoryData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="value" fill="#1890ff" name="数量" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Card>
+              </Col>
+            </Row>
+          </Layout.Content>
+        </Layout>
+      );
+    };
+    
+    const OpinionList = () => {
+      const dispatch = useDispatch();
+      const { list, loading } = useSelector(state => state.opinions);
+      
+      useEffect(() => {
+        dispatch(fetchOpinions());
+      }, [dispatch]);
+      
+      const columns = [
+        { title: '内容', dataIndex: 'content', key: 'content' },
+        { 
+          title: '情感倾向', 
+          dataIndex: 'sentiment', 
+          key: 'sentiment',
+          render: (value) => {
+            if (value === 'positive') return <Badge status="success" text="正面" />;
+            if (value === 'negative') return <Badge status="error" text="负面" />;
+            return <Badge status="default" text="中性" />;
+          }
+        },
+        { title: '时间', dataIndex: 'time', key: 'time' },
+        { title: '来源', dataIndex: 'source', key: 'source' },
+        { title: '分类', dataIndex: 'category', key: 'category' },
+        { title: '点赞数', dataIndex: 'likes', key: 'likes' }
+      ];
+      
+      return (
+        <Card title="舆情列表" extra={<Button onClick={() => dispatch(fetchOpinions())} loading={loading}>刷新</Button>}>
+          <Table columns={columns} dataSource={list} rowKey="id" />
+        </Card>
+      );
+    };
+    
+    // 路由配置
+    const router = createBrowserRouter([
+      {
+        path: '/',
+        element: <Navigate to="/login" replace />
+      },
+      {
+        path: '/login',
+        element: <LoginPage />
+      },
+      {
+        path: '/dashboard',
+        element: (
+          <div>
+            <Dashboard />
+          </div>
+        )
+      },
+      {
+        path: '/opinions',
+        element: (
+          <div style={{ padding: '20px' }}>
+            <h2>舆情列表</h2>
+            <OpinionList />
+          </div>
+        )
+      }
+    ]);
+    
+    // App
+    const App = () => {
+      return (
+        <Provider store={store}>
+          <RouterProvider router={router} />
+        </Provider>
+      );
+    };
+    
+    // 渲染
+    const root = createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>校园舆情检测与热点话题分析系统</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1890ff;
+            text-align: center;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .success {
+            background-color: #f6ffed;
+            border: 1px solid #b7eb8f;
+            color: #389e0d;
+        }
+        .error {
+            background-color: #fff2f0;
+            border: 1px solid #ffccc7;
+            color: #cf1322;
+        }
+        .api-info {
+            margin-top: 30px;
+        }
+        .api-endpoint {
+            padding: 10px;
+            margin: 10px 0;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #1890ff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+        button:hover {
+            background-color: #40a9ff;
+        }
+        .response {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>校园舆情检测与热点话题分析系统</h1>
+        
+        <div class="status" id="api-status">
+            正在连接API服务器...
+        </div>
+        
+        <div class="api-info">
+            <h2>可用API端点</h2>
+            
+            <div class="api-endpoint">
+                <strong>GET /api/ping</strong> - 检查服务器连接状态
+                <button onclick="testApi('/api/ping')">测试</button>
+                <div class="response" id="ping-response"></div>
+            </div>
+            
+            <div class="api-endpoint">
+                <strong>GET /api/舆情/list</strong> - 获取舆情列表
+                <button onclick="testApi('/api/舆情/list')">测试</button>
+                <div class="response" id="yuqing-response"></div>
+            </div>
+            
+            <div class="api-endpoint">
+                <strong>GET /api/热点/话题/list</strong> - 获取热点话题列表
+                <button onclick="testApi('/api/热点/话题/list')">测试</button>
+                <div class="response" id="topics-response"></div>
+            </div>
+            
+            <div class="api-endpoint">
+                <strong>GET /api/趋势/analysis</strong> - 获取趋势分析数据
+                <button onclick="testApi('/api/趋势/analysis')">测试</button>
+                <div class="response" id="trend-response"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 检查API服务器连接状态
+        async function checkApiStatus() {
+            const statusElement = document.getElementById('api-status');
+            try {
+                const response = await fetch('http://localhost:8000/api/ping');
+                if (response.ok) {
+                    const data = await response.json();
+                    statusElement.textContent = `API服务器连接成功: ${data.message}`;
+                    statusElement.className = 'status success';
+                } else {
+                    statusElement.textContent = 'API服务器响应异常';
+                    statusElement.className = 'status error';
+                }
+            } catch (error) {
+                statusElement.textContent = `API服务器连接失败: ${error.message}`;
+                statusElement.className = 'status error';
+            }
+        }
+
+        // 测试API端点
+        async function testApi(endpoint) {
+            const responseId = endpoint.replace('/api/', '').replace(/\//g, '-') + '-response';
+            const responseElement = document.getElementById(responseId);
+            responseElement.textContent = '正在请求...';
+            
+            try {
+                const response = await fetch(`http://localhost:8000${endpoint}`);
+                const data = await response.json();
+                responseElement.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                responseElement.textContent = `请求失败: ${error.message}`;
+            }
+        }
+
+        // 页面加载时检查API状态
+        window.onload = checkApiStatus;
+    </script>
+</body>
+</html>

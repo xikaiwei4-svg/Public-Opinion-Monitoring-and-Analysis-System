@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>最小化Redux测试</title>
+  <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/redux@4.2.1/dist/redux.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; margin: 50px; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+    .success { color: green; font-weight: bold; }
+    .error { color: red; font-weight: bold; }
+    button { padding: 8px 16px; margin: 10px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>最小化Redux测试</h1>
+    <p>React库加载: <span id="react-status" class="error">失败</span></p>
+    <p>Redux库加载: <span id="redux-status" class="error">失败</span></p>
+    
+    <div id="root"></div>
+  </div>
+  
+  <script type="text/babel">
+    // 检查库是否加载成功
+    if (typeof React !== 'undefined') {
+      document.getElementById('react-status').textContent = '成功';
+      document.getElementById('react-status').className = 'success';
+    }
+    
+    if (typeof Redux !== 'undefined') {
+      document.getElementById('redux-status').textContent = '成功';
+      document.getElementById('redux-status').className = 'success';
+    }
+    
+    // 最小化的Redux实现
+    if (typeof Redux !== 'undefined' && typeof React !== 'undefined') {
+      // 创建store
+      const { createStore } = Redux;
+      
+      // 简单reducer
+      const counterReducer = (state = { count: 0 }, action) => {
+        switch (action.type) {
+          case 'INCREMENT':
+            return { count: state.count + 1 };
+          case 'DECREMENT':
+            return { count: state.count - 1 };
+          default:
+            return state;
+        }
+      };
+      
+      // 创建store
+      const store = createStore(counterReducer);
+      
+      // React组件
+      const Counter = () => {
+        const [count, setCount] = React.useState(store.getState().count);
+        
+        React.useEffect(() => {
+          // 订阅store变化
+          return store.subscribe(() => {
+            setCount(store.getState().count);
+          });
+        }, []);
+        
+        return (
+          <div style={{ marginTop: '20px' }}>
+            <h2>Redux 计数器: {count}</h2>
+            <button onClick={() => store.dispatch({ type: 'INCREMENT' })}>
+              增加
+            </button>
+            <button onClick={() => store.dispatch({ type: 'DECREMENT' })}>
+              减少
+            </button>
+          </div>
+        );
+      };
+      
+      // 渲染组件
+      ReactDOM.createRoot(document.getElementById('root')).render(
+        <React.StrictMode>
+          <Counter />
+        </React.StrictMode>
+      );
+    }
+  </script>
+</body>
+</html>

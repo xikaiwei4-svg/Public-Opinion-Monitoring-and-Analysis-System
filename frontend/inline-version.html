@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>校园舆情分析系统 - 内联版本</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+    .login-container {
+      max-width: 400px;
+      margin: 50px auto;
+      padding: 20px;
+      border: 1px solid #d9d9d9;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    .dashboard-container {
+      padding: 20px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding: 10px 0;
+      border-bottom: 1px solid #e8e8e8;
+    }
+    .card {
+      border: 1px solid #e8e8e8;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+      background-color: #fff;
+    }
+    .card-title {
+      font-size: 16px;
+      font-weight: 500;
+      margin-bottom: 12px;
+    }
+    .button {
+      padding: 8px 16px;
+      border-radius: 4px;
+      border: 1px solid #d9d9d9;
+      background-color: #fff;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .button-primary {
+      background-color: #1890ff;
+      color: white;
+      border-color: #1890ff;
+    }
+    .button-danger {
+      background-color: #ff4d4f;
+      color: white;
+      border-color: #ff4d4f;
+    }
+    .input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #d9d9d9;
+      border-radius: 4px;
+      box-sizing: border-box;
+      margin-bottom: 12px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+    }
+    .stat-card {
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #1890ff;
+    }
+    .stat-label {
+      color: #666;
+      font-size: 14px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 8px;
+      text-align: left;
+      border-bottom: 1px solid #e8e8e8;
+    }
+    th {
+      background-color: #fafafa;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <script>
+    // 简单的状态管理
+    const state = {
+      isAuthenticated: false,
+      token: null,
+      userInfo: null
+    };
+    
+    // 模拟数据
+    const mockOpinions = [
+      { id: 1, content: '校园食堂饭菜价格上涨了', sentiment: 'negative', time: '2023-09-27 10:30', source: '微信公众号', category: '生活服务', likes: 42 },
+      { id: 2, content: '图书馆新增了很多新书，环境也改善了', sentiment: 'positive', time: '2023-09-27 09:15', source: '校园论坛', category: '学习环境', likes: 85 },
+      { id: 3, content: '宿舍空调温度调节系统需要改进', sentiment: 'negative', time: '2023-09-26 22:45', source: '匿名吐槽墙', category: '生活服务', likes: 67 },
+      { id: 4, content: '校园招聘会规模很大，来了很多知名企业', sentiment: 'positive', time: '2023-09-26 14:20', source: '微博', category: '就业信息', likes: 123 },
+      { id: 5, content: '学校网络速度太慢，经常断线', sentiment: 'negative', time: '2023-09-25 16:10', source: '校园论坛', category: '基础设施', likes: 94 },
+    ];
+    
+    const mockHotTopics = [
+      { id: 1, title: '校园食堂改革讨论', heat: 92, trend: 'up', relatedCount: 156 },
+      { id: 2, title: '期末考试安排调整', heat: 88, trend: 'up', relatedCount: 142 },
+      { id: 3, title: '新生入学指南', heat: 76, trend: 'down', relatedCount: 98 },
+      { id: 4, title: '校园安全整治行动', heat: 65, trend: 'stable', relatedCount: 78 },
+      { id: 5, title: '校园文化节活动安排', heat: 58, trend: 'up', relatedCount: 63 },
+    ];
+    
+    // 简单的路由系统
+    let currentPath = window.location.pathname;
+    const router = {
+      navigate: (path) => {
+        currentPath = path;
+        renderApp();
+      },
+      getPath: () => currentPath
+    };
+    
+    // 渲染辅助函数
+    const createElement = (tag, props, ...children) => {
+      const element = document.createElement(tag);
+      
+      if (props) {
+        Object.entries(props).forEach(([key, value]) => {
+          if (key === 'className') {
+            element.className = value;
+          } else if (key === 'onClick') {
+            element.addEventListener('click', value);
+          } else if (key === 'id') {
+            element.id = value;
+          } else if (key === 'type') {
+            element.type = value;
+          } else if (key === 'placeholder') {
+            element.placeholder = value;
+          } else if (key === 'value') {
+            element.value = value;
+          } else if (key === 'name') {
+            element.name = value;
+          }
+        });
+      }
+      
+      children.forEach(child => {
+        if (typeof child === 'string') {
+          element.appendChild(document.createTextNode(child));
+        } else if (child instanceof Node) {
+          element.appendChild(child);
+        }
+      });
+      
+      return element;
+    };
+    
+    // 组件
+    const LoginPage = () => {
+      const handleLogin = () => {
+        // 模拟登录
+        state.isAuthenticated = true;
+        state.token = 'mock-jwt-token';
+        state.userInfo = { name: '管理员', role: 'admin' };
+        router.navigate('/dashboard');
+      };
+      
+      const container = createElement('div', { className: 'login-container' });
+      container.appendChild(createElement('h2', null, '校园舆情分析系统'));
+      
+      const form = createElement('div');
+      form.appendChild(createElement('div', null, '用户名:', createElement('input', { type: 'text', className: 'input', placeholder: '请输入用户名' })));
+      form.appendChild(createElement('div', null, '密码:', createElement('input', { type: 'password', className: 'input', placeholder: '请输入密码' })));
+      form.appendChild(createElement('button', { className: 'button button-primary', onClick: handleLogin }, '登录'));
+      
+      container.appendChild(form);
+      return container;
+    };
+    
+    const Dashboard = () => {
+      const handleLogout = () => {
+        state.isAuthenticated = false;
+        state.token = null;
+        state.userInfo = null;
+        router.navigate('/login');
+      };
+      
+      const container = createElement('div', { className: 'dashboard-container' });
+      
+      // 头部
+      const header = createElement('div', { className: 'header' });
+      header.appendChild(createElement('h1', null, '校园舆情分析系统'));
+      header.appendChild(createElement('button', { className: 'button button-danger', onClick: handleLogout }, '退出登录'));
+      
+      // 统计卡片
+      const statsGrid = createElement('div', { className: 'grid' });
+      statsGrid.appendChild(createElement('div', { className: 'card stat-card' }, 
+        createElement('div', { className: 'stat-label' }, '总舆情数'),
+        createElement('div', { className: 'stat-value' }, mockOpinions.length)
+      ));
+      statsGrid.appendChild(createElement('div', { className: 'card stat-card' }, 
+        createElement('div', { className: 'stat-label' }, '热门话题数'),
+        createElement('div', { className: 'stat-value' }, mockHotTopics.length)
+      ));
+      statsGrid.appendChild(createElement('div', { className: 'card stat-card' }, 
+        createElement('div', { className: 'stat-label' }, '正面情绪占比'),
+        createElement('div', { className: 'stat-value' }, '42%')
+      ));
+      
+      // 舆情列表卡片
+      const opinionCard = createElement('div', { className: 'card' });
+      opinionCard.appendChild(createElement('div', { className: 'card-title' }, '最新舆情'));
+      
+      const opinionTable = createElement('table');
+      const thead = createElement('thead');
+      const headerRow = createElement('tr');
+      headerRow.appendChild(createElement('th', null, '内容'));
+      headerRow.appendChild(createElement('th', null, '情感'));
+      headerRow.appendChild(createElement('th', null, '时间'));
+      thead.appendChild(headerRow);
+      
+      const tbody = createElement('tbody');
+      mockOpinions.slice(0, 3).forEach(opinion => {
+        const row = createElement('tr');
+        row.appendChild(createElement('td', null, opinion.content));
+        row.appendChild(createElement('td', null, 
+          opinion.sentiment === 'positive' ? '正面' : 
+          opinion.sentiment === 'negative' ? '负面' : '中性'
+        ));
+        row.appendChild(createElement('td', null, opinion.time));
+        tbody.appendChild(row);
+      });
+      
+      opinionTable.appendChild(thead);
+      opinionTable.appendChild(tbody);
+      opinionCard.appendChild(opinionTable);
+      
+      // 热门话题卡片
+      const topicCard = createElement('div', { className: 'card' });
+      topicCard.appendChild(createElement('div', { className: 'card-title' }, '热门话题'));
+      
+      const topicTable = createElement('table');
+      const topicThead = createElement('thead');
+      const topicHeaderRow = createElement('tr');
+      topicHeaderRow.appendChild(createElement('th', null, '标题'));
+      topicHeaderRow.appendChild(createElement('th', null, '热度'));
+      topicHeaderRow.appendChild(createElement('th', null, '趋势'));
+      topicThead.appendChild(topicHeaderRow);
+      
+      const topicTbody = createElement('tbody');
+      mockHotTopics.slice(0, 3).forEach(topic => {
+        const row = createElement('tr');
+        row.appendChild(createElement('td', null, topic.title));
+        row.appendChild(createElement('td', null, topic.heat));
+        row.appendChild(createElement('td', null, 
+          topic.trend === 'up' ? '上升' : 
+          topic.trend === 'down' ? '下降' : '稳定'
+        ));
+        topicTbody.appendChild(row);
+      });
+      
+      topicTable.appendChild(topicThead);
+      topicTable.appendChild(topicTbody);
+      topicCard.appendChild(topicTable);
+      
+      // 组合所有元素
+      container.appendChild(header);
+      container.appendChild(statsGrid);
+      
+      const contentGrid = createElement('div', { className: 'grid' });
+      contentGrid.appendChild(opinionCard);
+      contentGrid.appendChild(topicCard);
+      
+      container.appendChild(contentGrid);
+      return container;
+    };
+    
+    // 应用渲染
+    const renderApp = () => {
+      const root = document.getElementById('root');
+      root.innerHTML = '';
+      
+      const path = router.getPath();
+      
+      if (!state.isAuthenticated && path !== '/login') {
+        router.navigate('/login');
+        return;
+      }
+      
+      if (path === '/login') {
+        root.appendChild(LoginPage());
+      } else if (path === '/dashboard') {
+        root.appendChild(Dashboard());
+      } else {
+        root.appendChild(createElement('div', { className: 'dashboard-container' }, 
+          createElement('h1', null, '404 - 页面未找到'),
+          createElement('button', { className: 'button button-primary', onClick: () => router.navigate('/dashboard') }, '返回仪表盘')
+        ));
+      }
+    };
+    
+    // 初始化渲染
+    renderApp();
+    
+    // 监听路径变化
+    window.addEventListener('popstate', () => {
+      currentPath = window.location.pathname;
+      renderApp();
+    });
+  </script>
+</body>
+</html>

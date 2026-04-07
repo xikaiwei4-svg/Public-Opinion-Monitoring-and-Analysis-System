@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>超简单React测试</title>
+  <!-- 使用CDN加载React相关库 -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      text-align: center;
+    }
+    .success {
+      color: green;
+      font-weight: bold;
+    }
+    .error {
+      color: red;
+      font-weight: bold;
+    }
+    .test-container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      background-color: #f9f9f9;
+    }
+    button {
+      padding: 8px 16px;
+      margin: 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>React 功能测试页面</h1>
+  <p>这个页面使用CDN上的React库，完全不依赖任何构建工具。</p>
+  
+  <div class="test-container">
+    <h2>测试结果</h2>
+    <p>React库加载: <span id="react-load-status" class="error">失败</span></p>
+    <p>React组件渲染: <span id="component-status" class="error">失败</span></p>
+    <p>状态管理: <span id="state-status" class="error">失败</span></p>
+    <p>事件处理: <span id="event-status" class="error">失败</span></p>
+  </div>
+  
+  <div id="root"></div>
+  
+  <script type="text/babel">
+    // 标记React库加载成功
+    document.getElementById('react-load-status').textContent = '成功';
+    document.getElementById('react-load-status').className = 'success';
+    
+    // 简单的React组件
+    const SimpleCounter = () => {
+      const [count, setCount] = React.useState(0);
+      const [eventTriggered, setEventTriggered] = React.useState(false);
+      
+      // 标记组件渲染成功
+      React.useEffect(() => {
+        document.getElementById('component-status').textContent = '成功';
+        document.getElementById('component-status').className = 'success';
+      }, []);
+      
+      // 标记状态管理成功
+      React.useEffect(() => {
+        if (count > 0) {
+          document.getElementById('state-status').textContent = '成功';
+          document.getElementById('state-status').className = 'success';
+        }
+      }, [count]);
+      
+      const handleClick = () => {
+        setCount(count + 1);
+        setEventTriggered(true);
+        document.getElementById('event-status').textContent = '成功';
+        document.getElementById('event-status').className = 'success';
+      };
+      
+      return (
+        <div style={{ marginTop: '20px', padding: '10px', backgroundColor: '#fff', borderRadius: '5px' }}>
+          <h3>React 计数器组件</h3>
+          <p>计数: {count}</p>
+          <button onClick={handleClick}>增加计数</button>
+          <button onClick={() => setCount(0)}>重置计数</button>
+          <p>{eventTriggered ? '按钮点击事件已触发!' : ''}</p>
+        </div>
+      );
+    };
+    
+    // 渲染组件
+    ReactDOM.createRoot(document.getElementById('root')).render(
+      <React.StrictMode>
+        <SimpleCounter />
+      </React.StrictMode>
+    );
+  </script>
+</body>
+</html>

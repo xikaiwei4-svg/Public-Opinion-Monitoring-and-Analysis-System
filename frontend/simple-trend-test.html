@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>简单趋势数据测试</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/antd@5/dist/reset.css">
+  <script src="https://unpkg.com/antd@5/dist/antd.min.js"></script>
+  <script src="https://unpkg.com/@reduxjs/toolkit@1.9.5/dist/redux-toolkit.umd.min.js"></script>
+  <script src="https://unpkg.com/react-redux@8.1.1/dist/react-redux.umd.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <script>
+    // 模拟Redux store和trend数据
+    const { configureStore, createSlice, createAsyncThunk } = ReduxToolkit;
+    const { Provider, useDispatch, useSelector } = ReactRedux;
+    const { Card, Typography } = antd;
+    const { Title, Text, Paragraph } = Typography;
+    
+    // 模拟异步数据获取
+    const fetchMockTrendData = () => {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve([
+            { date: '2023-07-01', count: 120, heat: 85 },
+            { date: '2023-07-02', count: 145, heat: 88 },
+            { date: '2023-07-03', count: 98, heat: 75 },
+            { date: '2023-07-04', count: 210, heat: 92 },
+            { date: '2023-07-05', count: 175, heat: 87 },
+            { date: '2023-07-06', count: 160, heat: 84 },
+            { date: '2023-07-07', count: 195, heat: 90 }
+          ]);
+        }, 1000);
+      });
+    };
+    
+    // 创建trend slice
+    const trendSlice = createSlice({
+      name: 'trend',
+      initialState: {
+        opinionTrend: [],
+        loading: false,
+        error: null
+      },
+      reducers: {},
+      extraReducers: (builder) => {
+        builder
+          .addCase(fetchOpinionTrend.pending, (state) => {
+            state.loading = true;
+            state.error = null;
+          })
+          .addCase(fetchOpinionTrend.fulfilled, (state, action) => {
+            state.loading = false;
+            state.opinionTrend = action.payload;
+          })
+          .addCase(fetchOpinionTrend.rejected, (state, action) => {
+            state.loading = false;
+            state.error = action.error.message || '获取数据失败';
+          });
+      }
+    });
+    
+    // 创建异步thunk
+    const fetchOpinionTrend = createAsyncThunk(
+      'trend/fetchOpinionTrend',
+      async () => {
+        const data = await fetchMockTrendData();
+        return data;
+      }
+    );
+    
+    // 创建store
+    const store = configureStore({
+      reducer: {
+        trend: trendSlice.reducer
+      }
+    });
+    
+    // 测试组件
+    const TestTrendData = () => {
+      const dispatch = useDispatch();
+      const { opinionTrend, loading } = useSelector((state) => state.trend);
+      
+      React.useEffect(() => {
+        dispatch(fetchOpinionTrend());
+      }, [dispatch]);
+      
+      return (
+        <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
+          <Title level={4}>趋势数据测试（使用CDN）</Title>
+          
+          <Card title="数据加载状态" style={{ marginBottom: '16px' }}>
+            <Text>加载中: {loading ? '是' : '否'}</Text>
+          </Card>
+
+          <Card title="opinionTrend 数据类型" style={{ marginBottom: '16px' }}>
+            <Text>类型: {typeof opinionTrend}</Text>
+            <Paragraph>是否为数组: {Array.isArray(opinionTrend) ? '是' : '否'}</Paragraph>
+            <Paragraph>数组长度: {Array.isArray(opinionTrend) ? opinionTrend.length : 'N/A'}</Paragraph>
+          </Card>
+
+          {Array.isArray(opinionTrend) && (
+            <Card title="数据内容" style={{ marginBottom: '16px' }}>
+              <Paragraph>
+                <pre style={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(opinionTrend, null, 2)}</pre>
+              </Paragraph>
+            </Card>
+          )}
+
+          {Array.isArray(opinionTrend) && opinionTrend.length > 0 && (
+            <Card title="直接访问count属性测试">
+              <Paragraph>尝试访问第一个元素的count: {opinionTrend[0].count}</Paragraph>
+              <Paragraph>尝试访问最后一个元素的count: {opinionTrend[opinionTrend.length - 1].count}</Paragraph>
+            </Card>
+          )}
+        </div>
+      );
+    };
+    
+    // 渲染应用
+    const App = () => {
+      return (
+        <Provider store={store}>
+          <TestTrendData />
+        </Provider>
+      );
+    };
+    
+    ReactDOM.createRoot(document.getElementById('root')).render(
+      React.createElement(App)
+    );
+  </script>
+</body>
+</html>

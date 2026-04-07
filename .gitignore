@@ -1,0 +1,77 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+*.egg-info/
+dist/
+build/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Test files
+test_*.py
+*_test.py
+*_test.html
+simple-test.html
+redux-test.html
+standalone-test.html
+test-api.html
+
+# Temporary files
+*.tmp
+*.temp
+.rbf
+
+# Frontend build
+dist/
+build/
+*.tsbuildinfo
+
+# Documentation (keep only main README)
+GRADUATION_THESIS.md
+thesis_toc.md
+tech-doc.md
+research_content.md
+RESUME_PROJECT_DESCRIPTION.md
+*.svg
+markdown_to_docx.py
+
+# Backup files
+*.fixed
+*.bak
