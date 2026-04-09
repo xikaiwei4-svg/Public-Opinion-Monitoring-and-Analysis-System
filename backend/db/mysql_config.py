@@ -6,11 +6,11 @@ from sqlalchemy.orm import sessionmaker
 from typing import Generator
 
 class MySQLSettings(BaseSettings):
-    MYSQL_HOST: str = "localhost"
-    MYSQL_PORT: int = 3306
-    MYSQL_USER: str = "root"
-    MYSQL_PASSWORD: str = ""  # 请通过环境变量或.env文件配置
-    MYSQL_DATABASE: str = "campus_opinion"
+    MYSQL_HOST: str = "localhost"  # 数据库主机
+    MYSQL_PORT: int = 3306  # 数据库端口
+    MYSQL_USER: str = "root"  # 数据库用户
+    MYSQL_PASSWORD: str = ""  # 强烈建议通过环境变量或.env文件配置
+    MYSQL_DATABASE: str = "campus_opinion"  # 数据库名称
     
     class Config:
         env_file = ".env"

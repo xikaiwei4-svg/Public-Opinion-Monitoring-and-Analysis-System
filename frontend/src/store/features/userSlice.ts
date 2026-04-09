@@ -435,117 +435,117 @@ const userSlice = createSlice({
   name: 'user',
   initialState,
   reducers: {
-    setToken: (state: { token: any }, action: PayloadAction<string | null>) => {
+    setToken: (state, action: PayloadAction<string | null>) => {
       state.token = action.payload;
     },
-    setUserInfo: (state: { userInfo: any }, action: PayloadAction<User | null>) => {
+    setUserInfo: (state, action: PayloadAction<User | null>) => {
       state.userInfo = action.payload;
     },
-    setFilters: (state: { filters: any }, action: PayloadAction<Partial<UserState['filters']>>) => {
+    setFilters: (state, action: PayloadAction<Partial<UserState['filters']>>) => {
       state.filters = { ...state.filters, ...action.payload };
     },
-    setCurrentPage: (state: { currentPage: any }, action: PayloadAction<number>) => {
+    setCurrentPage: (state, action: PayloadAction<number>) => {
       state.currentPage = action.payload;
     },
-    setPageSize: (state: { pageSize: any }, action: PayloadAction<number>) => {
+    setPageSize: (state, action: PayloadAction<number>) => {
       state.pageSize = action.payload;
     },
-    clearSelectedUser: (state: { selectedUser: null }) => {
+    clearSelectedUser: (state) => {
       state.selectedUser = null;
     }
   },
   extraReducers: (builder) => {
     builder
       // 登录
-      .addCase(login.pending, (state: { loading: boolean; error: null }) => {
+      .addCase(login.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(login.fulfilled, (state: { loading: boolean; userInfo: any; token: any }, action: { payload: { token: any; user: any } }) => {
+      .addCase(login.fulfilled, (state, action) => {
         state.loading = false;
         state.userInfo = action.payload.user;
         state.token = action.payload.token;
       })
-      .addCase(login.rejected, (state: { loading: boolean; error: any }, action: { error: { message: string } }) => {
+      .addCase(login.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || '登录失败';
+        state.error = action.error?.message || '登录失败';
       })
       
       // 获取当前用户信息
-      .addCase(fetchCurrentUser.pending, (state: { loading: boolean; error: null }) => {
+      .addCase(fetchCurrentUser.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchCurrentUser.fulfilled, (state: { loading: boolean; userInfo: any }, action: { payload: any }) => {
+      .addCase(fetchCurrentUser.fulfilled, (state, action) => {
         state.loading = false;
         state.userInfo = action.payload;
       })
-      .addCase(fetchCurrentUser.rejected, (state: { loading: boolean; error: any }, action: { error: { message: string } }) => {
+      .addCase(fetchCurrentUser.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || '获取用户信息失败';
+        state.error = action.error?.message || '获取用户信息失败';
       })
       
       // 登出
-      .addCase(logout.fulfilled, (state: { userInfo: null; token: null }) => {
+      .addCase(logout.fulfilled, (state) => {
         state.userInfo = null;
         state.token = null;
       })
       
       // 获取用户列表
-      .addCase(fetchUsers.pending, (state: { loading: boolean; error: null }) => {
+      .addCase(fetchUsers.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchUsers.fulfilled, (state: { loading: boolean; users: any; total: any; currentPage: any; pageSize: any }, action: { payload: { items: any; total: any; page: any; page_size: any } }) => {
+      .addCase(fetchUsers.fulfilled, (state, action) => {
         state.loading = false;
         state.users = action.payload.items;
         state.total = action.payload.total;
         state.currentPage = action.payload.page;
         state.pageSize = action.payload.page_size;
       })
-      .addCase(fetchUsers.rejected, (state: { loading: boolean; error: any }, action: { error: { message: string } }) => {
+      .addCase(fetchUsers.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || '获取用户列表失败';
+        state.error = action.error?.message || '获取用户列表失败';
       })
       
       // 删除用户
-      .addCase(deleteUser.pending, (state: { loading: boolean; error: null }) => {
+      .addCase(deleteUser.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(deleteUser.fulfilled, (state: UserState, action: { payload: { user_id: any } }) => {
+      .addCase(deleteUser.fulfilled, (state, action) => {
         state.loading = false;
-        state.users = state.users.filter((user: { id: any }) => user.id !== action.payload.user_id);
+        state.users = state.users.filter(user => user.id !== action.payload.user_id);
         state.total -= 1;
       })
-      .addCase(deleteUser.rejected, (state: { loading: boolean; error: any }, action: { error: { message: string } }) => {
+      .addCase(deleteUser.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || '删除用户失败';
+        state.error = action.error?.message || '删除用户失败';
       })
       
       // 获取用户详情
-      .addCase(fetchUserDetail.pending, (state: { loading: boolean; error: null }) => {
+      .addCase(fetchUserDetail.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchUserDetail.fulfilled, (state: { loading: boolean; selectedUser: any }, action: { payload: any }) => {
+      .addCase(fetchUserDetail.fulfilled, (state, action) => {
         state.loading = false;
         state.selectedUser = action.payload;
       })
-      .addCase(fetchUserDetail.rejected, (state: UserState, action: { error: { message: string } }) => {
+      .addCase(fetchUserDetail.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || '获取用户详情失败';
+        state.error = action.error?.message || '获取用户详情失败';
       })
       
       // 更新用户
-      .addCase(updateUser.pending, (state: { loading: boolean; error: null }) => {
+      .addCase(updateUser.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(updateUser.fulfilled, (state: { loading: boolean; users: any; selectedUser: any }, action: { payload: any }) => {
+      .addCase(updateUser.fulfilled, (state, action) => {
         state.loading = false;
         // 更新用户列表中的用户
-        const index = state.users.findIndex((user: { id: any }) => user.id === action.payload.id);
+        const index = state.users.findIndex(user => user.id === action.payload.id);
         if (index !== -1) {
           state.users[index] = action.payload;
         }
@@ -554,24 +554,24 @@ const userSlice = createSlice({
           state.selectedUser = action.payload;
         }
       })
-      .addCase(updateUser.rejected, (state: { loading: boolean; error: any }, action: { error: { message: string } }) => {
+      .addCase(updateUser.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || '更新用户失败';
+        state.error = action.error?.message || '更新用户失败';
       })
       
       // 创建用户
-      .addCase(createUser.pending, (state: { loading: boolean; error: null }) => {
+      .addCase(createUser.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(createUser.fulfilled, (state: { loading: boolean; users: any; total: any }, action: { payload: any }) => {
+      .addCase(createUser.fulfilled, (state, action) => {
         state.loading = false;
         state.users.push(action.payload);
         state.total += 1;
       })
-      .addCase(createUser.rejected, (state: { loading: boolean; error: any }, action: { error: { message: string } }) => {
+      .addCase(createUser.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || '创建用户失败';
+        state.error = action.error?.message || '创建用户失败';
       });
   }
 });

@@ -1,30 +1,29 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '../index';
-import { getOpinions } from '../../api/databaseApi';
-import { handleApiRequest } from '../../utils/mockData';
+import { fetchApiData } from '../../utils/apiCache';
 
 // 定义趋势数据类型
-interface TrendDataPoint {
+export interface TrendDataPoint {
   date: string;
   count: number;
   heat: number;
 }
 
-interface SentimentTrendData {
+export interface SentimentTrendData {
   date: string;
   positive: number;
   negative: number;
   neutral: number;
 }
 
-interface PlatformDistributionData {
+export interface PlatformDistributionData {
   platform: string;
   count: number;
   percentage: number;
   color: string;
 }
 
-interface TrendState {
+export interface TrendState {
   opinionTrend: TrendDataPoint[];
   sentimentTrend: SentimentTrendData[];
   platformDistribution: PlatformDistributionData[];
@@ -45,101 +44,108 @@ export const initialState: TrendState = {
   selectedPlatform: null
 };
 
-// 导入API缓存模块
-import { fetchApiData } from '../../utils/apiCache';
+// 工具函数：生成日期范围
+const generateDateRange = (days: number): string[] => {
+  const dates: string[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    dates.push(date.toISOString().split('T')[0]);
+  }
+  return dates;
+};
 
-// 异步获取舆情趋势数据 - 使用真实API
+// 工具函数：获取日期字符串
+const getDateString = (timestamp: string | undefined): string | null => {
+  if (!timestamp) return null;
+  try {
+    return timestamp.split('T')[0];
+  } catch (error) {
+    console.error('日期解析失败:', error);
+    return null;
+  }
+};
+
+// 异步获取舆情趋势数据
 export const fetchOpinionTrend = createAsyncThunk(
   'trend/fetchOpinionTrend',
   async (params: {
     days: '7' | '15' | '30';
     platform?: string;
   }) => {
-    console.log('fetchOpinionTrend called with params:', params);
     try {
-      // 从API获取数据（使用缓存）
       const apiData = await fetchApiData();
       
       // 过滤平台
-      let filteredData = apiData;
-      if (params.platform) {
-        filteredData = apiData.filter((item: any) => item.source_platform === params.platform);
-      }
+      const filteredData = params.platform 
+        ? apiData.filter((item: any) => item.source_platform === params.platform)
+        : apiData;
       
       // 按日期统计
-      const dateMap = new Map<string, number>();
       const days = parseInt(params.days);
+      const dateRange = generateDateRange(days);
+      const dateMap = new Map<string, number>();
       
-      // 初始化最近N天的日期
-      for (let i = days - 1; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        const dateStr = date.toISOString().split('T')[0];
-        dateMap.set(dateStr, 0);
-      }
+      // 初始化日期映射
+      dateRange.forEach(date => dateMap.set(date, 0));
       
       // 统计每天的数据量
       filteredData.forEach((item: any) => {
-        const date = item.publish_time ? item.publish_time.split('T')[0] : null;
+        const date = getDateString(item.publish_time);
         if (date && dateMap.has(date)) {
           dateMap.set(date, (dateMap.get(date) || 0) + 1);
         }
       });
       
-      // 转换为数组格式
+      // 转换为数组格式并计算热度
       const trendData: TrendDataPoint[] = Array.from(dateMap.entries())
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([date, count]) => ({
           date,
           count,
-          heat: Math.round(count * 1.5) // 热度值
+          heat: Math.round(count * 1.5) // 热度值计算
         }));
       
       return trendData;
     } catch (error) {
       console.error('获取舆情趋势数据失败:', error);
-      // 返回空数据，不回退到mock数据
       return [];
     }
   }
 );
 
-// 异步获取情感趋势数据 - 使用真实API
+// 异步获取情感趋势数据
 export const fetchSentimentTrend = createAsyncThunk(
   'trend/fetchSentimentTrend',
   async (params: {
     days: '7' | '15' | '30';
     platform?: string;
   }) => {
-    console.log('fetchSentimentTrend called with params:', params);
     try {
-      // 从API获取数据（使用缓存）
       const apiData = await fetchApiData();
       
       // 过滤平台
-      let filteredData = apiData;
-      if (params.platform) {
-        filteredData = apiData.filter((item: any) => item.source_platform === params.platform);
-      }
+      const filteredData = params.platform 
+        ? apiData.filter((item: any) => item.source_platform === params.platform)
+        : apiData;
       
       // 按日期和情感统计
-      const dateMap = new Map<string, { positive: number; negative: number; neutral: number }>();
       const days = parseInt(params.days);
+      const dateRange = generateDateRange(days);
+      const dateMap = new Map<string, { positive: number; negative: number; neutral: number }>();
       
-      // 初始化最近N天的日期
-      for (let i = days - 1; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        const dateStr = date.toISOString().split('T')[0];
-        dateMap.set(dateStr, { positive: 0, negative: 0, neutral: 0 });
-      }
+      // 初始化日期映射
+      dateRange.forEach(date => {
+        dateMap.set(date, { positive: 0, negative: 0, neutral: 0 });
+      });
       
       // 统计每天的情感分布
       filteredData.forEach((item: any) => {
-        const date = item.publish_time ? item.publish_time.split('T')[0] : null;
+        const date = getDateString(item.publish_time);
         if (date && dateMap.has(date)) {
           const current = dateMap.get(date)!;
-          const sentiment = item.sentiment || 'neutral';
+          const sentiment = (item.sentiment || 'neutral').toLowerCase();
+          
           if (sentiment === 'positive') {
             current.positive += 1;
           } else if (sentiment === 'negative') {
@@ -163,21 +169,18 @@ export const fetchSentimentTrend = createAsyncThunk(
       return sentimentData;
     } catch (error) {
       console.error('获取情感趋势数据失败:', error);
-      // 返回空数据，不回退到mock数据
       return [];
     }
   }
 );
 
-// 异步获取平台分布数据 - 使用真实API
+// 异步获取平台分布数据
 export const fetchPlatformDistribution = createAsyncThunk(
   'trend/fetchPlatformDistribution',
   async (params: {
     days: '7' | '15' | '30';
   }) => {
-    console.log('fetchPlatformDistribution called with params:', params);
     try {
-      // 从API获取数据（使用缓存）
       const apiData = await fetchApiData();
       
       // 按平台统计
@@ -204,7 +207,6 @@ export const fetchPlatformDistribution = createAsyncThunk(
       return platformData;
     } catch (error) {
       console.error('获取平台分布数据失败:', error);
-      // 返回空数据，不回退到mock数据
       return [];
     }
   }
@@ -215,13 +217,19 @@ const trendSlice = createSlice({
   name: 'trend',
   initialState,
   reducers: {
-    setTimeRange: (state: { timeRange: any }, action: PayloadAction<'7' | '15' | '30'>) => {
+    setTimeRange: (state, action: PayloadAction<'7' | '15' | '30'>) => {
       state.timeRange = action.payload;
     },
-    setSelectedPlatform: (state: { selectedPlatform: any }, action: PayloadAction<string | null>) => {
+    setSelectedPlatform: (state, action: PayloadAction<string | null>) => {
       state.selectedPlatform = action.payload;
     },
-    clearError: (state: { error: null }) => {
+    clearError: (state) => {
+      state.error = null;
+    },
+    clearTrendData: (state) => {
+      state.opinionTrend = [];
+      state.sentimentTrend = [];
+      state.platformDistribution = [];
       state.error = null;
     }
   },
@@ -272,7 +280,7 @@ const trendSlice = createSlice({
 });
 
 // 导出actions
-export const { setTimeRange, setSelectedPlatform, clearError } = trendSlice.actions;
+export const { setTimeRange, setSelectedPlatform, clearError, clearTrendData } = trendSlice.actions;
 
 // 导出selectors
 export const selectOpinionTrend = (state: RootState) => state.trend.opinionTrend;

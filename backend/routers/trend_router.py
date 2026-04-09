@@ -2,8 +2,8 @@ from fastapi import APIRouter, HTTPException, Query
 from typing import List, Optional
 from datetime import datetime, timedelta
 import pandas as pd
-from ..db.mongo_client import opinion_collection, trend_analysis_collection
-from ..models.opinion_model import TrendAnalysisModel, TrendDataPoint, SentimentType, SourcePlatform
+from db.mongo_client import opinion_collection, trend_analysis_collection
+from models.opinion_model import TrendAnalysisModel, TrendDataPoint, SentimentType, SourcePlatform
 
 # 创建路由实例
 router = APIRouter(

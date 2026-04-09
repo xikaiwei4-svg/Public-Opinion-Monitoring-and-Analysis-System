@@ -45,7 +45,7 @@ MOCK_USERS = [
 ]
 
 # 简单的JWT配置
-SECRET_KEY = "your-secret-key"  # 在实际生产环境中，应该使用环境变量或密钥管理系统
+SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key")  # 在实际生产环境中，应该使用环境变量或密钥管理系统
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

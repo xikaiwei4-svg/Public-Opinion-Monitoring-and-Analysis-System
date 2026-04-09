@@ -2,8 +2,8 @@ from fastapi import APIRouter, HTTPException, Query, Depends
 from typing import List, Optional
 from datetime import datetime
 from pymongo import ReturnDocument
-from ..db.mongo_client import opinion_collection
-from ..models.opinion_model import OpinionModel, SentimentType, SourcePlatform
+from db.mongo_client import opinion_collection
+from models.opinion_model import OpinionModel, SentimentType, SourcePlatform
 
 # 创建路由实例
 router = APIRouter(

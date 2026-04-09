@@ -1,112 +1,176 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { Typography, Card, Select, Button, Row, Col, Statistic, Spin, message } from 'antd'
 import { DownloadOutlined, SyncOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons'
+import { useDispatch, useSelector } from 'react-redux'
 import TrendAnalysis from '../components/TrendAnalysis'
+import { 
+  fetchOpinionTrend, 
+  fetchSentimentTrend, 
+  fetchPlatformDistribution,
+  selectOpinionTrend,
+  selectSentimentTrend,
+  selectPlatformDistribution,
+  selectTrendLoading
+} from '../store/features/trendSlice'
 
 const { Title, Text } = Typography
 
-// 模拟趋势数据
-const mockTrendData = {
-  opinionTrend: [
-    { date: '09-25', count: 120 },
-    { date: '09-26', count: 145 },
-    { date: '09-27', count: 180 },
-    { date: '09-28', count: 165 },
-    { date: '09-29', count: 210 },
-    { date: '09-30', count: 230 },
-    { date: '10-01', count: 250 }
-  ],
-  sentimentTrend: [
-    { date: '09-25', positive: 45, negative: 30, neutral: 45 },
-    { date: '09-26', positive: 50, negative: 25, neutral: 70 },
-    { date: '09-27', positive: 65, negative: 40, neutral: 75 },
-    { date: '09-28', positive: 55, negative: 35, neutral: 75 },
-    { date: '09-29', positive: 75, negative: 50, neutral: 85 },
-    { date: '09-30', positive: 85, negative: 45, neutral: 100 },
-    { date: '10-01', positive: 90, negative: 60, neutral: 100 }
-  ],
-  platformDistribution: [
-    { name: '校园论坛', value: 35 },
-    { name: '微信公众号', value: 28 },
-    { name: '微博', value: 22 },
-    { name: '校园官网', value: 15 }
-  ],
-  stats: {
-    totalOpinions: 1300,
-    growthRate: 12.5,
-    avgSentiment: 0.62,
-    topPlatform: '校园论坛'
-  }
+// 统计数据类型
+interface Stats {
+  totalOpinions: number
+  growthRate: number
+  avgSentiment: number
+  topPlatform: string
+  maxDailyOpinions: number
+  sentimentRatio: { positive: number; negative: number; neutral: number }
 }
 
-const TrendDataPage: React.FC = () => {
+const TrendDataPage: React.FC = React.memo(() => {
+  const dispatch = useDispatch()
   const [selectedDays, setSelectedDays] = useState<string>('7')
   const [refreshing, setRefreshing] = useState(false)
-  const [trendData, setTrendData] = useState(mockTrendData)
-  const [loading, setLoading] = useState(false)
+  
+  // 从Redux获取数据
+  const opinionTrend = useSelector(selectOpinionTrend)
+  const sentimentTrend = useSelector(selectSentimentTrend)
+  const platformDistribution = useSelector(selectPlatformDistribution)
+  const loading = useSelector(selectTrendLoading)
 
   // 加载数据
-  const loadData = (days: string = selectedDays) => {
-    setLoading(true)
-    // 模拟API请求延迟
-    setTimeout(() => {
-      // 这里可以根据不同的时间范围调整数据
-      // 目前直接使用模拟数据
-      setTrendData(mockTrendData)
-      setLoading(false)
-    }, 800)
-  }
+  const loadData = useCallback((days: string) => {
+    console.log('TrendDataPage: Loading data for', days, 'days')
+    dispatch(fetchOpinionTrend({ days: days as '7' | '15' | '30' }))
+    dispatch(fetchSentimentTrend({ days: days as '7' | '15' | '30' }))
+    dispatch(fetchPlatformDistribution({ days: days as '7' | '15' | '30' }))
+  }, [dispatch])
 
   // 组件加载时加载数据
   useEffect(() => {
-    loadData()
-  }, [])
-
-  // 监听时间范围变化
-  useEffect(() => {
     loadData(selectedDays)
-  }, [selectedDays])
+  }, [loadData, selectedDays])
 
   // 刷新数据
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     setRefreshing(true)
     loadData(selectedDays)
     setTimeout(() => {
       setRefreshing(false)
       message.success('数据刷新成功')
-    }, 800)
-  }
+    }, 1000)
+  }, [loadData, selectedDays])
 
   // 导出数据
-  const handleExport = () => {
-    message.success(`已导出${selectedDays}天的趋势数据`)
-  }
-
-  // 计算变化趋势
-  const getGrowthTrend = (rate: number) => {
-    if (rate > 0) {
-      return (
-        <Text style={{ color: '#ff4d4f' }}>
-          <ArrowUpOutlined /> {rate}%
-        </Text>
-      )
-    } else if (rate < 0) {
-      return (
-        <Text style={{ color: '#52c41a' }}>
-          <ArrowDownOutlined /> {Math.abs(rate)}%
-        </Text>
-      )
+  const handleExport = useCallback(() => {
+    const exportData = {
+      opinionTrend,
+      sentimentTrend,
+      platformDistribution,
+      selectedDays,
+      exportTime: new Date().toISOString()
     }
-    return <Text style={{ color: '#faad14' }}>—</Text>
-  }
+    
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `trend_report_${new Date().toISOString().split('T')[0]}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    
+    message.success(`已导出${selectedDays}天的趋势数据`)
+  }, [opinionTrend, sentimentTrend, platformDistribution, selectedDays])
+
+  // 计算统计数据（使用useMemo缓存计算结果）
+  const stats: Stats = useMemo(() => {
+    // 计算总舆情数
+    const totalOpinions = opinionTrend.reduce((sum, item) => sum + (item.count || 0), 0)
+    
+    // 计算增长率（基于最近两天的数据）
+    let growthRate = 0
+    if (opinionTrend.length >= 2) {
+      const latest = opinionTrend[opinionTrend.length - 1]
+      const previous = opinionTrend[opinionTrend.length - 2]
+      if (previous.count && previous.count > 0) {
+        growthRate = ((latest.count - previous.count) / previous.count) * 100
+      }
+    }
+    
+    // 计算平均情感指数和情感比例
+    let avgSentiment = 0
+    let sentimentRatio = { positive: 0, negative: 0, neutral: 0 }
+    
+    if (sentimentTrend.length > 0) {
+      const totalPositive = sentimentTrend.reduce((sum, item) => sum + (item.positive || 0), 0)
+      const totalNegative = sentimentTrend.reduce((sum, item) => sum + (item.negative || 0), 0)
+      const totalNeutral = sentimentTrend.reduce((sum, item) => sum + (item.neutral || 0), 0)
+      const total = totalPositive + totalNegative + totalNeutral
+      
+      if (total > 0) {
+        avgSentiment = (totalPositive - totalNegative) / total
+        sentimentRatio = {
+          positive: Math.round((totalPositive / total) * 100),
+          negative: Math.round((totalNegative / total) * 100),
+          neutral: Math.round((totalNeutral / total) * 100)
+        }
+      }
+    }
+    
+    // 找出主要来源平台
+    let topPlatform = '暂无数据'
+    if (platformDistribution.length > 0) {
+      topPlatform = platformDistribution[0].platform || platformDistribution[0].name || '暂无数据'
+    }
+    
+    // 计算最大日舆情数
+    const maxDailyOpinions = opinionTrend.length > 0 
+      ? Math.max(...opinionTrend.map(item => item.count || 0)) 
+      : 0
+    
+    return {
+      totalOpinions,
+      growthRate: parseFloat(growthRate.toFixed(1)),
+      avgSentiment: parseFloat(avgSentiment.toFixed(2)),
+      topPlatform,
+      maxDailyOpinions,
+      sentimentRatio
+    }
+  }, [opinionTrend, sentimentTrend, platformDistribution])
 
   // 获取情感等级描述
-  const getSentimentLevel = (score: number) => {
+  const getSentimentLevel = useCallback((score: number) => {
     if (score > 0.7) return '正面偏强'
     if (score > 0.5) return '轻微正面'
     if (score > 0.3) return '中性偏正'
-    return '中性偏弱'
-  }
+    if (score > 0) return '轻微正面'
+    if (score > -0.3) return '中性偏弱'
+    if (score > -0.5) return '轻微负面'
+    return '负面偏强'
+  }, [])
+
+  // 生成趋势洞察
+  const trendInsights = useMemo(() => {
+    const isIncreasing = stats.growthRate > 0
+    const sentimentDirection = stats.avgSentiment > 0 ? '正面' : stats.avgSentiment < 0 ? '负面' : '中性'
+    const isSignificantChange = Math.abs(stats.growthRate) > 10
+    const activityChange = isSignificantChange ? (isIncreasing ? '增加' : '减少') : '稳定'
+    
+    return {
+      keyFindings: [
+        `近${selectedDays}天舆情总量呈${isIncreasing ? '上升' : '下降'}趋势`,
+        `情感倾向整体偏${sentimentDirection}`,
+        `${stats.topPlatform}是主要信息来源`,
+        `最近两天舆情活跃度明显${activityChange}`
+      ],
+      recommendations: [
+        `持续关注${stats.topPlatform}平台的热点话题`,
+        `针对${stats.avgSentiment < 0 ? '负面' : '关键'}舆情进行重点监控`,
+        `定期分析舆情趋势变化，及时调整应对策略`,
+        `关注情感分布：正面${stats.sentimentRatio.positive}%，负面${stats.sentimentRatio.negative}%`
+      ]
+    }
+  }, [stats, selectedDays])
 
   return (
     <div>
@@ -150,7 +214,7 @@ const TrendDataPage: React.FC = () => {
             <Card>
               <Statistic
                 title="总舆情数"
-                value={trendData.stats.totalOpinions}
+                value={stats.totalOpinions}
                 suffix="条"
                 precision={0}
               />
@@ -160,10 +224,11 @@ const TrendDataPage: React.FC = () => {
             <Card>
               <Statistic
                 title="增长率"
-                value={trendData.stats.growthRate}
+                value={stats.growthRate}
                 suffix="%"
                 precision={1}
-                valueStyle={{ color: trendData.stats.growthRate > 0 ? '#ff4d4f' : '#52c41a' }}
+                valueStyle={{ color: stats.growthRate > 0 ? '#ff4d4f' : '#52c41a' }}
+                prefix={stats.growthRate > 0 ? <ArrowUpOutlined /> : stats.growthRate < 0 ? <ArrowDownOutlined /> : null}
               />
             </Card>
           </Col>
@@ -171,10 +236,10 @@ const TrendDataPage: React.FC = () => {
             <Card>
               <Statistic
                 title="平均情感指数"
-                value={trendData.stats.avgSentiment}
-                suffix={getSentimentLevel(trendData.stats.avgSentiment)}
+                value={stats.avgSentiment}
+                suffix={getSentimentLevel(stats.avgSentiment)}
                 precision={2}
-                valueStyle={{ color: trendData.stats.avgSentiment > 0.5 ? '#52c41a' : '#faad14' }}
+                valueStyle={{ color: stats.avgSentiment > 0 ? '#52c41a' : stats.avgSentiment < 0 ? '#ff4d4f' : '#faad14' }}
               />
             </Card>
           </Col>
@@ -182,7 +247,7 @@ const TrendDataPage: React.FC = () => {
             <Card>
               <Statistic
                 title="主要来源平台"
-                value={trendData.stats.topPlatform}
+                value={stats.topPlatform}
               />
             </Card>
           </Col>
@@ -194,7 +259,7 @@ const TrendDataPage: React.FC = () => {
             <Card title="舆情数量趋势">
               <TrendAnalysis 
                 type="line" 
-                data={trendData.opinionTrend} 
+                data={opinionTrend} 
                 xField="date" 
                 yField="count" 
                 height={300}
@@ -205,7 +270,7 @@ const TrendDataPage: React.FC = () => {
             <Card title="情感倾向趋势">
               <TrendAnalysis 
                 type="area" 
-                data={trendData.sentimentTrend} 
+                data={sentimentTrend} 
                 xField="date" 
                 yFields={['positive', 'negative', 'neutral']}
                 height={300}
@@ -214,13 +279,13 @@ const TrendDataPage: React.FC = () => {
           </Col>
         </Row>
         
-        {/* 平台分布 */}
+        {/* 平台分布和趋势洞察 */}
         <Row>
           <Col xs={24} md={12}>
             <Card title="信息源平台分布">
               <TrendAnalysis 
                 type="pie" 
-                data={trendData.platformDistribution} 
+                data={platformDistribution} 
                 height={300}
               />
             </Card>
@@ -230,17 +295,16 @@ const TrendDataPage: React.FC = () => {
               <div style={{ padding: 16, lineHeight: 1.8 }}>
                 <h4 style={{ marginBottom: 12, color: '#1890ff' }}>关键发现</h4>
                 <ul style={{ paddingLeft: 20, margin: 0 }}>
-                  <li>近{selectedDays}天舆情总量呈{trendData.stats.growthRate > 0 ? '上升' : '下降'}趋势</li>
-                  <li>情感倾向整体偏{trendData.stats.avgSentiment > 0.5 ? '正面' : '中性'}</li>
-                  <li>{trendData.stats.topPlatform}是主要信息来源</li>
-                  <li>最近两天舆情活跃度明显{trendData.stats.growthRate > 10 ? '增加' : '稳定'}</li>
+                  {trendInsights.keyFindings.map((finding, index) => (
+                    <li key={index}>{finding}</li>
+                  ))}
                 </ul>
                 
                 <h4 style={{ marginTop: 24, marginBottom: 12, color: '#1890ff' }}>建议措施</h4>
                 <ul style={{ paddingLeft: 20, margin: 0 }}>
-                  <li>持续关注{trendData.stats.topPlatform}平台的热点话题</li>
-                  <li>针对{trendData.stats.avgSentiment < 0.5 ? '负面' : '关键'}舆情进行重点监控</li>
-                  <li>定期分析舆情趋势变化，及时调整应对策略</li>
+                  {trendInsights.recommendations.map((recommendation, index) => (
+                    <li key={index}>{recommendation}</li>
+                  ))}
                 </ul>
               </div>
             </Card>
@@ -249,6 +313,8 @@ const TrendDataPage: React.FC = () => {
       </Spin>
     </div>
   )
-}
+})
+
+TrendDataPage.displayName = 'TrendDataPage'
 
 export default TrendDataPage

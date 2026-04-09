@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, Query
 from typing import List, Optional
 from datetime import datetime, timedelta
-from ..db.mongo_client import hot_topics_collection, opinion_collection
-from ..models.opinion_model import HotTopicModel, SourcePlatform
+from db.mongo_client import hot_topics_collection, opinion_collection
+from models.opinion_model import HotTopicModel, SourcePlatform
 
 # 创建路由实例
 router = APIRouter(

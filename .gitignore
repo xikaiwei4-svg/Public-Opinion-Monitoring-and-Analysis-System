@@ -57,6 +57,22 @@ test-api.html
 *.tmp
 *.temp
 .rbf
+node.exe
+npm.tgz
+main
+*.bak
+*.swp
+*.swo
+*.exe
+*.dll
+*.bin
+*.dat
+*.out
+*.pid
+*.coverage
+coverage/
+campus_opinion_system/
+Public Opinion Monitoring and Analysis System/
 
 # Frontend build
 dist/

@@ -21,10 +21,10 @@ class CNNSentimentModel:
         self.tokenizer_path = os.path.join(model_path, "tokenizer.pickle")
         self.config_path = os.path.join(model_path, "config.pickle")
         
-        # 模型参数
-        self.max_features = 10000  # 词汇表大小
-        self.max_len = 100        # 序列最大长度
-        self.embedding_dim = 128   # 词嵌入维度
+        # 模型参数 - 优化版本
+        self.max_features = 20000  # 词汇表大小增加
+        self.max_len = 150        # 序列最大长度增加
+        self.embedding_dim = 256   # 词嵌入维度增加
         
         # 加载或创建模型
         if os.path.exists(model_path):
@@ -38,35 +38,57 @@ class CNNSentimentModel:
             print("✓ 已创建新模型")
     
     def build_model(self):
-        """构建CNN模型"""
+        """构建优化的CNN模型"""
         model = Sequential([
             # 嵌入层
             Embedding(input_dim=self.max_features, 
                       output_dim=self.embedding_dim, 
                       input_length=self.max_len),
             
-            # 卷积层
-            Conv1D(filters=64, kernel_size=3, activation='relu'),
-            MaxPooling1D(pool_size=2),
-            Dropout(0.2),
+            # 多尺度卷积层 - 捕获不同长度的特征
+            tf.keras.layers.BatchNormalization(),
             
-            Conv1D(filters=128, kernel_size=3, activation='relu'),
+            # 小窗口卷积（捕捉局部特征）
+            Conv1D(filters=128, kernel_size=2, activation='relu'),
             MaxPooling1D(pool_size=2),
-            Dropout(0.2),
+            Dropout(0.3),
+            
+            # 中窗口卷积（捕捉短语特征）
+            Conv1D(filters=256, kernel_size=3, activation='relu'),
+            MaxPooling1D(pool_size=2),
+            Dropout(0.3),
+            
+            # 大窗口卷积（捕捉长距离依赖）
+            Conv1D(filters=128, kernel_size=5, activation='relu'),
+            MaxPooling1D(pool_size=2),
+            Dropout(0.3),
             
             # 全局池化层
             GlobalMaxPooling1D(),
             
             # 全连接层
-            Dense(64, activation='relu'),
+            Dense(128, activation='relu'),
+            tf.keras.layers.BatchNormalization(),
             Dropout(0.5),
+            
+            Dense(64, activation='relu'),
+            Dropout(0.4),
+            
             Dense(3, activation='softmax')  # 3分类：正面、负面、中性
         ])
         
+        # 使用优化的优化器
+        optimizer = tf.keras.optimizers.Adam(
+            learning_rate=0.001,
+            beta_1=0.9,
+            beta_2=0.999,
+            epsilon=1e-08
+        )
+        
         model.compile(
-            optimizer='adam',
+            optimizer=optimizer,
             loss='sparse_categorical_crossentropy',
-            metrics=['accuracy']
+            metrics=['accuracy', tf.keras.metrics.Precision(), tf.keras.metrics.Recall()]
         )
         
         return model
@@ -80,8 +102,8 @@ class CNNSentimentModel:
         words = jieba.lcut(text)
         return " ".join(words)
     
-    def train(self, texts, labels, epochs=10, batch_size=32):
-        """训练模型"""
+    def train(self, texts, labels, epochs=20, batch_size=32):
+        """训练模型 - 优化版本"""
         # 预处理文本
         processed_texts = [self.preprocess_text(text) for text in texts]
         
@@ -90,13 +112,41 @@ class CNNSentimentModel:
         sequences = self.tokenizer.texts_to_sequences(processed_texts)
         padded_sequences = pad_sequences(sequences, maxlen=self.max_len, padding='post')
         
+        # 添加早停机制
+        early_stopping = tf.keras.callbacks.EarlyStopping(
+            monitor='val_loss',
+            patience=5,
+            restore_best_weights=True,
+            verbose=1
+        )
+        
+        # 添加学习率调度器
+        lr_scheduler = tf.keras.callbacks.ReduceLROnPlateau(
+            monitor='val_loss',
+            factor=0.5,
+            patience=3,
+            min_lr=1e-6,
+            verbose=1
+        )
+        
+        # 添加模型检查点
+        checkpoint = tf.keras.callbacks.ModelCheckpoint(
+            os.path.join(self.model_path, 'best_model.h5'),
+            monitor='val_accuracy',
+            save_best_only=True,
+            mode='max',
+            verbose=1
+        )
+        
         # 训练模型
         history = self.model.fit(
             padded_sequences,
             np.array(labels),
             epochs=epochs,
             batch_size=batch_size,
-            validation_split=0.2
+            validation_split=0.2,
+            callbacks=[early_stopping, lr_scheduler, checkpoint],
+            verbose=1
         )
         
         # 保存模型
@@ -105,10 +155,11 @@ class CNNSentimentModel:
         self.save_tokenizer()
         self.save_config()
         
+        print(f"训练完成！最佳验证准确率: {max(history.history.get('val_accuracy', [0])):.4f}")
         return history
     
     def predict(self, text):
-        """预测情感"""
+        """预测情感 - 优化版本"""
         # 预处理文本
         processed_text = self.preprocess_text(text)
         
@@ -117,7 +168,7 @@ class CNNSentimentModel:
         padded_sequence = pad_sequences(sequence, maxlen=self.max_len, padding='post')
         
         # 预测
-        prediction = self.model.predict(padded_sequence)[0]
+        prediction = self.model.predict(padded_sequence, verbose=0)[0]
         sentiment_idx = np.argmax(prediction)
         
         # 映射情感类型
@@ -134,6 +185,46 @@ class CNNSentimentModel:
             score = 0.0
         
         return sentiment_type, round(score, 4)
+    
+    def predict_batch(self, texts, batch_size=32):
+        """批量预测情感 - 新增功能"""
+        if not texts:
+            return []
+        
+        # 预处理文本
+        processed_texts = [self.preprocess_text(text) for text in texts]
+        
+        # 向量化
+        sequences = self.tokenizer.texts_to_sequences(processed_texts)
+        padded_sequences = pad_sequences(sequences, maxlen=self.max_len, padding='post')
+        
+        # 批量预测
+        predictions = []
+        for i in range(0, len(padded_sequences), batch_size):
+            batch = padded_sequences[i:i + batch_size]
+            batch_predictions = self.model.predict(batch, verbose=0)
+            
+            for pred in batch_predictions:
+                sentiment_idx = np.argmax(pred)
+                sentiment_map = {0: "negative", 1: "neutral", 2: "positive"}
+                sentiment_type = sentiment_map[sentiment_idx]
+                sentiment_score = float(pred[sentiment_idx])
+                
+                # 调整情感得分范围为 [-1, 1]
+                if sentiment_type == "positive":
+                    score = sentiment_score
+                elif sentiment_type == "negative":
+                    score = -sentiment_score
+                else:
+                    score = 0.0
+                
+                predictions.append({
+                    'sentiment': sentiment_type,
+                    'score': round(score, 4),
+                    'confidence': round(sentiment_score, 4)
+                })
+        
+        return predictions
     
     def save_tokenizer(self):
         """保存分词器"""

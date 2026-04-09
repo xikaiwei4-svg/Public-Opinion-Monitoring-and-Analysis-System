@@ -13,11 +13,12 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'http://localhost:8001',
+        target: 'http://localhost:8000',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '/api')
       }
-    }
+    },
+    historyApiFallback: true // 支持SPA路由刷新
   },
   build: {
     outDir: 'dist',

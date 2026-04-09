@@ -18,7 +18,7 @@ const SideMenu: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const currentPath = location.pathname
-  const [collapsed, setCollapsed] = React.useState(false)
+  const [collapsed, setCollapsed] = React.useState(true)
 
   // 模拟权限数据
   const mockPermissions = ['read', 'admin']
@@ -46,7 +46,13 @@ const SideMenu: React.FC = () => {
       route: '/hot-topic/list',
       permission: 'read'
     },
-    {      key: 'trend',      icon: <LineChartOutlined />,      label: '趋势分析',      route: '/test/trend-data',      permission: 'read'    },
+    {
+      key: 'trend',
+      icon: <LineChartOutlined />,
+      label: '趋势分析',
+      route: '/trend-analysis',
+      permission: 'read'
+    },
     
     {
       key: 'user',
@@ -128,7 +134,8 @@ const SideMenu: React.FC = () => {
         position: 'fixed',
         left: 0,
         top: 64,
-        bottom: 0
+        bottom: 0,
+        zIndex: 1000
       }}
     >
       <Menu
