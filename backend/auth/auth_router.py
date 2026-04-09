@@ -4,6 +4,7 @@ from fastapi.security import OAuth2PasswordBearer
 from datetime import datetime, timedelta
 import jwt
 import os
+import logging
 from typing import Dict, Optional, List
 
 from .user_model import User, LoginRequest, LoginResponse, UserCreate, UserUpdate, ApiResponse
@@ -44,8 +45,14 @@ MOCK_USERS = [
     }
 ]
 
-# 简单的JWT配置
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key")  # 在实际生产环境中，应该使用环境变量或密钥管理系统
+# 日志记录器
+logger = logging.getLogger(__name__)
+
+# 简单的JWT配置（强制要求环境变量，不使用不安全的默认值）
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    logger.error("Environment variable SECRET_KEY not set; aborting startup for security.")
+    raise RuntimeError("Environment variable SECRET_KEY must be set to a strong secret; do not use default weak values.")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

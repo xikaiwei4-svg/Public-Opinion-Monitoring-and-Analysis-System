@@ -207,60 +207,22 @@ export const fetchOpinionStatistics = createAsyncThunk(
   }) => {
     console.log('fetchOpinionStatistics called with params:', params);
     try {
-      // 从API获取数据（使用缓存）
-      const apiData = await fetchApiData();
+      // 直接调用后端统计API
+      const response = await fetch('/api/opinion/statistics');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const apiData = await response.json();
       
-      // 计算统计数据
-      const total_opinions = apiData.length;
-      const positive_count = apiData.filter((item: any) => item.sentiment === 'positive').length;
-      const negative_count = apiData.filter((item: any) => item.sentiment === 'negative').length;
-      const neutral_count = apiData.filter((item: any) => item.sentiment === 'neutral').length;
-      
-      // 平台分布统计
-      const platformMap = new Map<string, number>();
-      apiData.forEach((item: any) => {
-        const platform = item.source_platform || '未知平台';
-        platformMap.set(platform, (platformMap.get(platform) || 0) + 1);
-      });
-      const platform_distribution = Array.from(platformMap.entries()).map(([platform, count]) => ({
-        platform,
-        count,
-        percentage: Math.round((count / total_opinions) * 100)
-      }));
-      
-      // 按日期统计
-      const dateMap = new Map<string, number>();
-      apiData.forEach((item: any) => {
-        const date = item.publish_time ? item.publish_time.split('T')[0] : new Date().toISOString().split('T')[0];
-        dateMap.set(date, (dateMap.get(date) || 0) + 1);
-      });
-      const daily_trend = Array.from(dateMap.entries())
-        .sort(([a], [b]) => a.localeCompare(b))
-        .slice(-7) // 最近7天
-        .map(([date, count]) => ({ date, count }));
-      
-      // 分类统计（根据关键词简单分类）
-      const categoryMap = new Map<string, number>();
-      apiData.forEach((item: any) => {
-        const keywords = item.keywords ? item.keywords.split(',') : [];
-        if (keywords.length > 0) {
-          const category = keywords[0];
-          categoryMap.set(category, (categoryMap.get(category) || 0) + 1);
-        }
-      });
-      const category_distribution = Array.from(categoryMap.entries())
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5)
-        .map(([category, count]) => ({ category, count }));
-      
+      // 转换数据格式以匹配前端期望的结构
       return {
-        total_opinions,
-        positive_count,
-        negative_count,
-        neutral_count,
-        daily_trend,
-        platform_distribution,
-        category_distribution
+        total_opinions: apiData.total_count || 0,
+        positive_count: apiData.sentiment_distribution?.positive || 0,
+        negative_count: apiData.sentiment_distribution?.negative || 0,
+        neutral_count: apiData.sentiment_distribution?.neutral || 0,
+        daily_trend: [], // 由trendSlice处理
+        platform_distribution: apiData.platform_distribution || [],
+        category_distribution: [] // 暂不支持分类统计
       };
     } catch (error) {
       console.error('获取舆情统计数据失败:', error);

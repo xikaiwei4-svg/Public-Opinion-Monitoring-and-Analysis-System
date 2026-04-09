@@ -115,3 +115,21 @@ class CrawlerLog(Base):
     success_count = Column(Integer, default=0, comment="成功数")
     error_count = Column(Integer, default=0, comment="失败数")
     error_message = Column(Text, nullable=True, comment="错误信息")
+
+# 预警记录模型
+class AlertRecord(Base):
+    __tablename__ = "alert_records"
+    
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    alert_type = Column(String(50), nullable=False, comment="预警类型")
+    alert_level = Column(String(20), default="medium", comment="预警级别")
+    title = Column(String(500), nullable=False, comment="预警标题")
+    description = Column(Text, nullable=True, comment="预警描述")
+    opinion_id = Column(Integer, nullable=True, comment="关联舆情ID")
+    hot_topic_id = Column(Integer, nullable=True, comment="关联热点话题ID")
+    trigger_condition = Column(String(500), nullable=True, comment="触发条件")
+    created_at = Column(DateTime, default=func.now(), comment="创建时间")
+    processed = Column(Boolean, default=False, comment="是否已处理")
+    processed_at = Column(DateTime, nullable=True, comment="处理时间")
+    processed_by = Column(Integer, nullable=True, comment="处理人ID")
+    processing_note = Column(Text, nullable=True, comment="处理备注")

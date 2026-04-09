@@ -79,6 +79,10 @@ dist/
 build/
 *.tsbuildinfo
 
+# Large directories to ignore
+frontend/package/
+frontend/backend/
+
 # Documentation (keep only main README)
 GRADUATION_THESIS.md
 thesis_toc.md

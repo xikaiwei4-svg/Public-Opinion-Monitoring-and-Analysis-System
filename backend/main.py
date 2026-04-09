@@ -19,6 +19,8 @@ from routers.trend_router import router as trend_router  # 趋势分析路由
 # 导入工具模块
 from utils.redis_cache import redis_cache
 from utils.db_utils import db_utils
+from db.mysql_config import get_db
+from models.mysql_models import Opinion, HotTopic, TrendData
 
 # 配置日志
 logging.basicConfig(
@@ -117,28 +119,67 @@ async def get_current_user():
 @app.get("/api/opinions/statistics", tags=["统计数据"])
 async def get_opinion_statistics(
     start_time: Optional[str] = None,
-    end_time: Optional[str] = None
+    end_time: Optional[str] = None,
+    db = Depends(get_db)
 ):
     try:
-        # 返回模拟数据，不依赖数据库
-        mock_statistics = {
-            "total_count": 1256,
-            "hot_topics_count": 28,
-            "views_count": 3567,
-            "sentiment_distribution": {
-                "positive": 523,
-                "negative": 345,
-                "neutral": 388
-            },
-            "platform_distribution": [
-                {"platform": "微博", "count": 456, "percentage": 36.3},
-                {"platform": "知乎", "count": 321, "percentage": 25.6},
-                {"platform": "微信", "count": 289, "percentage": 23.0},
-                {"platform": "其他", "count": 190, "percentage": 15.1}
-            ],
+        # 从MySQL数据库获取真实数据
+        total_count = db.query(Opinion).count()
+        hot_topics_count = db.query(HotTopic).count()
+        
+        # 获取情感分布
+        sentiment_stats = db.query(
+            Opinion.sentiment,
+            func.count(Opinion.id).label('count')
+        ).group_by(Opinion.sentiment).all()
+        
+        sentiment_distribution = {
+            "positive": 0,
+            "negative": 0,
+            "neutral": 0
+        }
+        
+        for sentiment, count in sentiment_stats:
+            if sentiment in sentiment_distribution:
+                sentiment_distribution[sentiment] = count
+        
+        # 获取平台分布
+        platform_stats = db.query(
+            Opinion.source_platform,
+            func.count(Opinion.id).label('count')
+        ).group_by(Opinion.source_platform).all()
+        
+        platform_distribution = []
+        for platform, count in platform_stats:
+            percentage = (count / total_count * 100) if total_count > 0 else 0
+            platform_name = platform
+            if platform == "weibo":
+                platform_name = "微博"
+            elif platform == "wechat":
+                platform_name = "微信"
+            elif platform == "zhihu":
+                platform_name = "知乎"
+            else:
+                platform_name = "其他"
+                
+            platform_distribution.append({
+                "platform": platform_name,
+                "count": count,
+                "percentage": round(percentage, 1)
+            })
+        
+        # 获取总阅读数
+        views_count = db.query(func.sum(Opinion.read_count)).scalar() or 0
+        
+        statistics = {
+            "total_count": total_count,
+            "hot_topics_count": hot_topics_count,
+            "views_count": views_count,
+            "sentiment_distribution": sentiment_distribution,
+            "platform_distribution": platform_distribution,
             "time_range": "最近7天"
         }
-        return mock_statistics
+        return statistics
     except Exception as e:
         logger.error(f"获取统计数据失败: {e}")
         raise HTTPException(status_code=500, detail=f"获取统计数据失败: {str(e)}")
@@ -153,30 +194,70 @@ async def get_opinion_list(
     start_time: Optional[str] = None,
     end_time: Optional[str] = None,
     is_sensitive: Optional[bool] = None,
-    category: Optional[str] = None
+    category: Optional[str] = None,
+    db = Depends(get_db)
 ):
     try:
-        # 返回模拟数据，不依赖数据库
-        mock_opinions = []
-        for i in range(pageSize):
-            mock_opinions.append({
-                "id": f"opinion_{(page-1)*pageSize + i + 1}",
-                "content": f"这是一条模拟舆情数据 {i+1}：关于校园生活的讨论...",
-                "platform": ["微博", "知乎", "微信"][i % 3],
-                "sentiment": ["positive", "negative", "neutral"][i % 3],
-                "published_at": f"2026-04-{str(9 - i % 7).zfill(2)}T10:00:00Z",
-                "url": f"https://example.com/opinion/{i+1}",
-                "author": f"用户{i+1}",
-                "is_sensitive": i % 5 == 0
+        # 构建查询
+        query = db.query(Opinion)
+        
+        # 应用过滤条件
+        if keyword:
+            query = query.filter(Opinion.title.contains(keyword) | Opinion.content.contains(keyword))
+        
+        if source:
+            source_map = {
+                "微博": "weibo",
+                "微信": "wechat",
+                "知乎": "zhihu",
+                "其他": "other"
+            }
+            query = query.filter(Opinion.source_platform == source_map.get(source, source))
+        
+        if sentiment_type:
+            query = query.filter(Opinion.sentiment == sentiment_type)
+        
+        if is_sensitive is not None:
+            query = query.filter(Opinion.is_hot == is_sensitive)
+        
+        # 获取总数
+        total = query.count()
+        
+        # 分页
+        offset = (page - 1) * pageSize
+        opinions = query.offset(offset).limit(pageSize).all()
+        
+        # 转换为前端需要的格式
+        items = []
+        for opinion in opinions:
+            platform_name = opinion.source_platform
+            if platform_name == "weibo":
+                platform_name = "微博"
+            elif platform_name == "wechat":
+                platform_name = "微信"
+            elif platform_name == "zhihu":
+                platform_name = "知乎"
+            else:
+                platform_name = "其他"
+            
+            items.append({
+                "id": f"opinion_{opinion.id}",
+                "content": opinion.content or opinion.title,
+                "platform": platform_name,
+                "sentiment": opinion.sentiment,
+                "published_at": opinion.publish_time.isoformat() if opinion.publish_time else None,
+                "url": opinion.source_url,
+                "author": opinion.author,
+                "is_sensitive": opinion.is_hot
             })
         
-        mock_result = {
-            "items": mock_opinions,
-            "total": 1256,
+        result = {
+            "items": items,
+            "total": total,
             "page": page,
             "page_size": pageSize
         }
-        return mock_result
+        return result
     except Exception as e:
         logger.error(f"获取舆情列表失败: {e}")
         raise HTTPException(status_code=500, detail=f"获取舆情列表失败: {str(e)}")
@@ -184,53 +265,48 @@ async def get_opinion_list(
 @app.get("/api/hot-topic/list", tags=["热点分析"])
 async def get_hot_topics(
     days: int = 7,
-    limit: int = 10
+    limit: int = 10,
+    db = Depends(get_db)
 ):
     try:
-        # 返回模拟数据，不依赖数据库
-        mock_hot_topics = [
-            {
-                "topic": "校园食堂改革",
-                "count": 156,
-                "sentiment": "neutral",
-                "platforms": ["微博", "知乎"],
+        # 从MySQL数据库获取热点话题数据
+        hot_topics = db.query(HotTopic).order_by(HotTopic.mention_count.desc()).limit(limit).all()
+        
+        result = []
+        for topic in hot_topics:
+            # 获取相关的舆情数量
+            related_opinions_count = db.query(Opinion).filter(
+                Opinion.title.contains(topic.topic) | 
+                Opinion.content.contains(topic.topic)
+            ).count()
+            
+            # 获取涉及的平台
+            platforms = db.query(Opinion.source_platform).filter(
+                Opinion.title.contains(topic.topic) | 
+                Opinion.content.contains(topic.topic)
+            ).distinct().all()
+            
+            platform_names = []
+            for (platform,) in platforms:
+                if platform == "weibo":
+                    platform_names.append("微博")
+                elif platform == "wechat":
+                    platform_names.append("微信")
+                elif platform == "zhihu":
+                    platform_names.append("知乎")
+                else:
+                    platform_names.append("其他")
+            
+            result.append({
+                "topic": topic.topic,
+                "count": topic.mention_count,
+                "sentiment": topic.trend,
+                "platforms": platform_names,
                 "time_range": f"最近{days}天",
-                "related_opinions": 89
-            },
-            {
-                "topic": "期末考试安排",
-                "count": 98,
-                "sentiment": "negative",
-                "platforms": ["微信", "QQ"],
-                "time_range": f"最近{days}天",
-                "related_opinions": 56
-            },
-            {
-                "topic": "校园网络升级",
-                "count": 78,
-                "sentiment": "positive",
-                "platforms": ["微博", "知乎", "微信"],
-                "time_range": f"最近{days}天",
-                "related_opinions": 42
-            },
-            {
-                "topic": "宿舍环境改善",
-                "count": 65,
-                "sentiment": "positive",
-                "platforms": ["微信"],
-                "time_range": f"最近{days}天",
-                "related_opinions": 38
-            },
-            {
-                "topic": "校园活动安排",
-                "count": 45,
-                "sentiment": "neutral",
-                "platforms": ["微博", "QQ"],
-                "time_range": f"最近{days}天",
-                "related_opinions": 29
-            }
-        ]
-        return mock_hot_topics[:limit]
+                "related_opinions": related_opinions_count
+            })
+        
+        return result
     except Exception as e:
         logger.error(f"获取热点话题失败: {e}")
         raise HTTPException(status_code=500, detail=f"获取热点话题失败: {str(e)}")
@@ -238,22 +314,39 @@ async def get_hot_topics(
 @app.get("/api/trend/opinion", tags=["趋势分析"])
 async def get_trend_opinion(
     days: str = "7",
-    platform: Optional[str] = None
+    platform: Optional[str] = None,
+    db = Depends(get_db)
 ):
     try:
-        # 返回模拟数据，不依赖数据库
         days_int = int(days)
-        mock_trend_data = []
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days_int - 1)
         
-        for i in range(days_int):
-            date = (datetime.now() - timedelta(days=days_int - i - 1)).strftime("%Y-%m-%d")
-            mock_trend_data.append({
-                "date": date,
-                "count": 50 + i * 10,
+        # 从MySQL数据库获取趋势数据
+        trend_data = db.query(TrendData).filter(
+            TrendData.date >= start_date,
+            TrendData.date <= end_date
+        ).order_by(TrendData.date).all()
+        
+        result = []
+        for data in trend_data:
+            result.append({
+                "date": data.date.strftime("%Y-%m-%d"),
+                "count": data.total_count,
                 "platform": platform or "all"
             })
         
-        return mock_trend_data
+        # 如果数据库中没有足够的数据，生成补充数据
+        if len(result) < days_int:
+            for i in range(days_int - len(result)):
+                date = (start_date + timedelta(days=i)).strftime("%Y-%m-%d")
+                result.append({
+                    "date": date,
+                    "count": 0,
+                    "platform": platform or "all"
+                })
+        
+        return result
     except Exception as e:
         logger.error(f"获取趋势数据失败: {e}")
         raise HTTPException(status_code=500, detail=f"获取趋势数据失败: {str(e)}")
@@ -261,65 +354,97 @@ async def get_trend_opinion(
 @app.get("/api/trend/sentiment", tags=["趋势分析"])
 async def get_trend_sentiment(
     days: str = "7",
-    platform: Optional[str] = None
+    platform: Optional[str] = None,
+    db = Depends(get_db)
 ):
     try:
-        # 返回模拟数据，不依赖数据库
         days_int = int(days)
-        mock_sentiment_data = []
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days_int - 1)
         
-        for i in range(days_int):
-            date = (datetime.now() - timedelta(days=days_int - i - 1)).strftime("%Y-%m-%d")
-            mock_sentiment_data.append({
-                "date": date,
-                "positive": 30 + i * 5,
-                "negative": 20 + i * 2,
-                "neutral": 40 + i * 3,
+        # 从MySQL数据库获取情感趋势数据
+        trend_data = db.query(TrendData).filter(
+            TrendData.date >= start_date,
+            TrendData.date <= end_date
+        ).order_by(TrendData.date).all()
+        
+        result = []
+        for data in trend_data:
+            result.append({
+                "date": data.date.strftime("%Y-%m-%d"),
+                "positive": data.positive_count,
+                "negative": data.negative_count,
+                "neutral": data.neutral_count,
                 "platform": platform or "all"
             })
         
-        return mock_sentiment_data
+        # 如果数据库中没有足够的数据，生成补充数据
+        if len(result) < days_int:
+            for i in range(days_int - len(result)):
+                date = (start_date + timedelta(days=i)).strftime("%Y-%m-%d")
+                result.append({
+                    "date": date,
+                    "positive": 0,
+                    "negative": 0,
+                    "neutral": 0,
+                    "platform": platform or "all"
+                })
+        
+        return result
     except Exception as e:
         logger.error(f"获取情感趋势数据失败: {e}")
         raise HTTPException(status_code=500, detail=f"获取情感趋势数据失败: {str(e)}")
 
 @app.get("/api/trend/platform-distribution", tags=["趋势分析"])
 async def get_trend_platform_distribution(
-    days: str = "7"
+    days: str = "7",
+    db = Depends(get_db)
 ):
     try:
-        # 返回模拟数据，不依赖数据库
-        mock_platform_distribution = [
-            {
-                "platform": "微博",
-                "count": 456,
-                "percentage": 36.3,
-                "time_range": f"最近{days}天"
-            },
-            {
-                "platform": "知乎",
-                "count": 321,
-                "percentage": 25.6,
-                "time_range": f"最近{days}天"
-            },
-            {
-                "platform": "微信",
-                "count": 289,
-                "percentage": 23.0,
-                "time_range": f"最近{days}天"
-            },
-            {
-                "platform": "其他",
-                "count": 190,
-                "percentage": 15.1,
-                "time_range": f"最近{days}天"
-            }
-        ]
+        days_int = int(days)
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days_int - 1)
         
-        return mock_platform_distribution
+        # 从MySQL数据库获取平台分布数据
+        platform_stats = db.query(
+            Opinion.source_platform,
+            func.count(Opinion.id).label('count')
+        ).filter(
+            Opinion.publish_time >= start_date,
+            Opinion.publish_time <= end_date
+        ).group_by(Opinion.source_platform).all()
+        
+        total_count = sum(stat.count for stat in platform_stats)
+        
+        result = []
+        for platform, count in platform_stats:
+            percentage = (count / total_count * 100) if total_count > 0 else 0
+            
+            platform_name = platform
+            if platform == "weibo":
+                platform_name = "微博"
+            elif platform == "wechat":
+                platform_name = "微信"
+            elif platform == "zhihu":
+                platform_name = "知乎"
+            else:
+                platform_name = "其他"
+            
+            result.append({
+                "platform": platform_name,
+                "count": count,
+                "percentage": round(percentage, 1),
+                "time_range": f"最近{days}天"
+            })
+        
+        return result
     except Exception as e:
         logger.error(f"获取平台分布数据失败: {e}")
         raise HTTPException(status_code=500, detail=f"获取平台分布数据失败: {str(e)}")
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import sys
+    port = 8000
+    if len(sys.argv) > 2 and sys.argv[1] == "--port":
+        port = int(sys.argv[2])
+    uvicorn.run(app, host="0.0.0.0", port=port)

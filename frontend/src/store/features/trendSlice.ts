@@ -74,39 +74,19 @@ export const fetchOpinionTrend = createAsyncThunk(
     platform?: string;
   }) => {
     try {
-      const apiData = await fetchApiData();
+      // 直接调用后端趋势分析API
+      const response = await fetch(`/api/trend/opinion?days=${params.days}${params.platform ? `&platform=${params.platform}` : ''}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const apiData = await response.json();
       
-      // 过滤平台
-      const filteredData = params.platform 
-        ? apiData.filter((item: any) => item.source_platform === params.platform)
-        : apiData;
-      
-      // 按日期统计
-      const days = parseInt(params.days);
-      const dateRange = generateDateRange(days);
-      const dateMap = new Map<string, number>();
-      
-      // 初始化日期映射
-      dateRange.forEach(date => dateMap.set(date, 0));
-      
-      // 统计每天的数据量
-      filteredData.forEach((item: any) => {
-        const date = getDateString(item.publish_time);
-        if (date && dateMap.has(date)) {
-          dateMap.set(date, (dateMap.get(date) || 0) + 1);
-        }
-      });
-      
-      // 转换为数组格式并计算热度
-      const trendData: TrendDataPoint[] = Array.from(dateMap.entries())
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([date, count]) => ({
-          date,
-          count,
-          heat: Math.round(count * 1.5) // 热度值计算
-        }));
-      
-      return trendData;
+      // 转换数据格式以匹配前端期望的结构
+      return apiData.map((item: any) => ({
+        date: item.date,
+        count: item.count,
+        heat: Math.round(item.count * 1.5) // 热度值计算
+      }));
     } catch (error) {
       console.error('获取舆情趋势数据失败:', error);
       return [];
@@ -122,51 +102,20 @@ export const fetchSentimentTrend = createAsyncThunk(
     platform?: string;
   }) => {
     try {
-      const apiData = await fetchApiData();
+      // 直接调用后端情感趋势API
+      const response = await fetch(`/api/trend/sentiment?days=${params.days}${params.platform ? `&platform=${params.platform}` : ''}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const apiData = await response.json();
       
-      // 过滤平台
-      const filteredData = params.platform 
-        ? apiData.filter((item: any) => item.source_platform === params.platform)
-        : apiData;
-      
-      // 按日期和情感统计
-      const days = parseInt(params.days);
-      const dateRange = generateDateRange(days);
-      const dateMap = new Map<string, { positive: number; negative: number; neutral: number }>();
-      
-      // 初始化日期映射
-      dateRange.forEach(date => {
-        dateMap.set(date, { positive: 0, negative: 0, neutral: 0 });
-      });
-      
-      // 统计每天的情感分布
-      filteredData.forEach((item: any) => {
-        const date = getDateString(item.publish_time);
-        if (date && dateMap.has(date)) {
-          const current = dateMap.get(date)!;
-          const sentiment = (item.sentiment || 'neutral').toLowerCase();
-          
-          if (sentiment === 'positive') {
-            current.positive += 1;
-          } else if (sentiment === 'negative') {
-            current.negative += 1;
-          } else {
-            current.neutral += 1;
-          }
-        }
-      });
-      
-      // 转换为数组格式
-      const sentimentData: SentimentTrendData[] = Array.from(dateMap.entries())
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([date, counts]) => ({
-          date,
-          positive: counts.positive,
-          negative: counts.negative,
-          neutral: counts.neutral
-        }));
-      
-      return sentimentData;
+      // 直接返回API数据，格式已经匹配
+      return apiData.map((item: any) => ({
+        date: item.date,
+        positive: item.positive,
+        negative: item.negative,
+        neutral: item.neutral
+      }));
     } catch (error) {
       console.error('获取情感趋势数据失败:', error);
       return [];
@@ -181,30 +130,22 @@ export const fetchPlatformDistribution = createAsyncThunk(
     days: '7' | '15' | '30';
   }) => {
     try {
-      const apiData = await fetchApiData();
+      // 直接调用后端平台分布API
+      const response = await fetch(`/api/trend/platform-distribution?days=${params.days}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const apiData = await response.json();
       
-      // 按平台统计
-      const platformMap = new Map<string, number>();
       const colors = ['#1890ff', '#52c41a', '#faad14', '#f5222d', '#722ed1', '#13c2c2'];
       
-      apiData.forEach((item: any) => {
-        const platform = item.source_platform || '其他';
-        platformMap.set(platform, (platformMap.get(platform) || 0) + 1);
-      });
-      
-      const total = apiData.length || 1;
-      
-      // 转换为数组格式
-      const platformData: PlatformDistributionData[] = Array.from(platformMap.entries())
-        .sort((a, b) => b[1] - a[1])
-        .map(([platform, count], index) => ({
-          platform,
-          count,
-          percentage: Math.round((count / total) * 100),
-          color: colors[index % colors.length]
-        }));
-      
-      return platformData;
+      // 转换数据格式以匹配前端期望的结构
+      return apiData.map((item: any, index: number) => ({
+        platform: item.platform,
+        count: item.count,
+        percentage: item.percentage,
+        color: colors[index % colors.length]
+      }));
     } catch (error) {
       console.error('获取平台分布数据失败:', error);
       return [];
