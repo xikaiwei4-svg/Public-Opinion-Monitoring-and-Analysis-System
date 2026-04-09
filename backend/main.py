@@ -19,6 +19,9 @@ from routers.trend_router import router as trend_router  # 趋势分析路由
 # 导入工具模块
 from utils.redis_cache import redis_cache
 from utils.db_utils import db_utils
+from db.mysql_config import get_db
+from models.mysql_models import Opinion, HotTopic, TrendData
+from sqlalchemy import func
 
 # 配置日志
 logging.basicConfig(
@@ -117,28 +120,67 @@ async def get_current_user():
 @app.get("/api/opinions/statistics", tags=["统计数据"])
 async def get_opinion_statistics(
     start_time: Optional[str] = None,
-    end_time: Optional[str] = None
+    end_time: Optional[str] = None,
+    db = Depends(get_db)
 ):
     try:
-        # 返回模拟数据，不依赖数据库
-        mock_statistics = {
-            "total_count": 1256,
-            "hot_topics_count": 28,
-            "views_count": 3567,
-            "sentiment_distribution": {
-                "positive": 523,
-                "negative": 345,
-                "neutral": 388
-            },
-            "platform_distribution": [
-                {"platform": "微博", "count": 456, "percentage": 36.3},
-                {"platform": "知乎", "count": 321, "percentage": 25.6},
-                {"platform": "微信", "count": 289, "percentage": 23.0},
-                {"platform": "其他", "count": 190, "percentage": 15.1}
-            ],
+        # 从MySQL数据库获取真实数据
+        total_count = db.query(Opinion).count()
+        hot_topics_count = db.query(HotTopic).count()
+        
+        # 获取情感分布
+        sentiment_stats = db.query(
+            Opinion.sentiment,
+            func.count(Opinion.id).label('count')
+        ).group_by(Opinion.sentiment).all()
+        
+        sentiment_distribution = {
+            "positive": 0,
+            "negative": 0,
+            "neutral": 0
+        }
+        
+        for sentiment, count in sentiment_stats:
+            if sentiment in sentiment_distribution:
+                sentiment_distribution[sentiment] = count
+        
+        # 获取平台分布
+        platform_stats = db.query(
+            Opinion.source_platform,
+            func.count(Opinion.id).label('count')
+        ).group_by(Opinion.source_platform).all()
+        
+        platform_distribution = []
+        for platform, count in platform_stats:
+            percentage = (count / total_count * 100) if total_count > 0 else 0
+            platform_name = platform
+            if platform == "weibo":
+                platform_name = "微博"
+            elif platform == "wechat":
+                platform_name = "微信"
+            elif platform == "zhihu":
+                platform_name = "知乎"
+            else:
+                platform_name = "其他"
+                
+            platform_distribution.append({
+                "platform": platform_name,
+                "count": count,
+                "percentage": round(percentage, 1)
+            })
+        
+        # 获取总阅读数
+        views_count = db.query(func.sum(Opinion.read_count)).scalar() or 0
+        
+        statistics = {
+            "total_count": total_count,
+            "hot_topics_count": hot_topics_count,
+            "views_count": views_count,
+            "sentiment_distribution": sentiment_distribution,
+            "platform_distribution": platform_distribution,
             "time_range": "最近7天"
         }
-        return mock_statistics
+        return statistics
     except Exception as e:
         logger.error(f"获取统计数据失败: {e}")
         raise HTTPException(status_code=500, detail=f"获取统计数据失败: {str(e)}")
