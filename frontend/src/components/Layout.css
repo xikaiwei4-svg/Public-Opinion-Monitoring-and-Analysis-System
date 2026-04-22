@@ -1,17 +1,32 @@
 .app-layout {
   min-height: 100vh;
+  background-color: #ffffff !important;
 }
 
 .main-content {
   margin: 0;
   padding: 0;
   min-height: calc(100vh - 64px);
+  background-color: #ffffff !important;
+}
+
+/* 覆盖Ant Design的默认样式 */
+.ant-layout {
+  background-color: #ffffff !important;
+}
+
+.ant-layout-header {
+  background-color: #ffffff !important;
+}
+
+.ant-layout-content {
+  background-color: #ffffff !important;
 }
 
 .content-wrapper {
   margin: 16px;
   padding: 24px;
-  background: #fff;
+  background: #ffffff;
   border-radius: 8px;
   min-height: calc(100vh - 150px);
 }
@@ -20,5 +35,12 @@
   .content-wrapper {
     margin: 8px;
     padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .content-wrapper {
+    margin: 4px;
+    padding: 12px;
   }
 }

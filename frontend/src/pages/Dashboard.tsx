@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { Typography, Row, Col, Card, Spin, Alert, Statistic, Divider, Button, Select, message } from 'antd'
+import { Typography, Row, Col, Card, Spin, Alert, Statistic, Divider, Button, Select, message, List, Space } from 'antd'
 import TrendAnalysis from '../components/TrendAnalysis'
 import { useDispatch, useSelector } from 'react-redux'
 import { selectDashboardStats, fetchOpinionStatistics, selectOpinionStatistics, selectOpinionLoading, selectOpinionError } from '../store/features/opinionSlice'
@@ -13,15 +13,18 @@ import {
   selectTrendLoading, 
   selectTrendError 
 } from '../store/features/trendSlice'
-import { DownloadOutlined, SyncOutlined, DownOutlined, UpOutlined } from '@ant-design/icons'
+import { DownloadOutlined, SyncOutlined, HomeOutlined, MessageOutlined, FireOutlined, LineChartOutlined, UserOutlined, DatabaseOutlined, SettingOutlined } from '@ant-design/icons'
+import { useNavigate } from 'react-router-dom'
 
-const { Title } = Typography
+const { Title, Text } = Typography
 
 function Dashboard() {
   const dispatch = useDispatch()
+  const navigate = useNavigate()
   const [selectedDays, setSelectedDays] = useState('7')
   const [refreshing, setRefreshing] = useState(false)
-  const [collapsed, setCollapsed] = useState(true)
+  
+
   
   // 从Redux获取仪表盘统计数据
   const dashboardStats = useSelector(selectDashboardStats)
@@ -123,156 +126,145 @@ function Dashboard() {
 
   return (
     <div>
-      {/* 仪表盘标题和折叠按钮 */}
+      {/* 仪表盘标题 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <Title level={3} style={{ margin: 0 }}>仪表盘概览</Title>
-        <Button
-          type="primary"
-          icon={collapsed ? <DownOutlined /> : <UpOutlined />}
-          onClick={() => setCollapsed(!collapsed)}
-        >
-          {collapsed ? '展开' : '收起'}
-        </Button>
       </div>
 
-      {/* 可折叠的仪表盘内容 */}
-      {!collapsed && (
-        <div>
-          {/* 错误提示 */}
-          {(opinionError || trendError) && (
-            <Alert
-              message="数据加载失败"
-              description={opinionError || trendError}
-              type="error"
-              showIcon
-              style={{ marginBottom: 16 }}
-              onClose={() => {}}
-            />
-          )}
-          
-          {/* 控制面板 */}
-          <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-            <div>
-              <Select 
-                value={selectedDays} 
-                style={{ width: 120 }} 
-                onChange={(value) => setSelectedDays(value)}
-              >
-                <Select.Option value="7">近7天</Select.Option>
-                <Select.Option value="14">近14天</Select.Option>
-                <Select.Option value="30">近30天</Select.Option>
-              </Select>
-            </div>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <Button 
-                type="primary" 
-                icon={<SyncOutlined />} 
-                onClick={handleRefresh}
-                loading={refreshing}
-              >
-                刷新数据
-              </Button>
-              <Button 
-                icon={<DownloadOutlined />}
-                onClick={handleExportData}
-              >
-                导出报表
-              </Button>
-            </div>
-          </div>
 
-          {/* 统计卡片 */}
-          <Spin spinning={opinionLoading || trendLoading || refreshing} tip="加载中...">
-            <Row gutter={16}>
-              {stats.map((stat, index) => (
-                <Col xs={24} sm={12} md={8} key={index}>
-                  <Card title={stat.title} style={{ height: '100%' }}>
-                    <Statistic
-                      value={stat.value}
-                      valueStyle={{ fontSize: 32 }}
-                      suffix={stat.description}
-                    />
-                  </Card>
-                </Col>
-              ))}
-            </Row>
-          </Spin>
 
-          <Divider />
-
-          {/* 趋势分析 */}
-          <TrendAnalysis timeRange={selectedDays} onTimeRangeChange={setSelectedDays} />
-
-          <Divider />
-
-          {/* 情感分布 */}
-          <Row gutter={16}>
-            <Col span={24}>
-              <Card title="情感分布">
-                <Spin spinning={opinionLoading || trendLoading} tip="加载中...">
-                  {dashboardStats?.sentiment_distribution ? (
-                    <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: 24 }}>
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 48, color: '#52c41a', fontWeight: 'bold' }}>
-                          {sentimentData.positive}%
-                        </div>
-                        <div style={{ color: '#52c41a', marginTop: 8 }}>正面</div>
-                      </div>
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 48, color: '#1890ff', fontWeight: 'bold' }}>
-                          {sentimentData.neutral}%
-                        </div>
-                        <div style={{ color: '#1890ff', marginTop: 8 }}>中性</div>
-                      </div>
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 48, color: '#ff7875', fontWeight: 'bold' }}>
-                          {sentimentData.negative}%
-                        </div>
-                        <div style={{ color: '#ff7875', marginTop: 8 }}>负面</div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{ textAlign: 'center', color: '#999', padding: 40 }}>
-                      暂无数据
-                    </div>
-                  )}
-                </Spin>
-              </Card>
-            </Col>
-          </Row>
-
-          <Divider />
-
-          {/* 平台分布 */}
-          <Row gutter={16}>
-            <Col span={24}>
-              <Card title="平台分布">
-                <Spin spinning={opinionLoading || trendLoading} tip="加载中...">
-                  {dashboardStats?.platform_distribution && dashboardStats.platform_distribution.length > 0 ? (
-                    <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: 24 }}>
-                      {dashboardStats.platform_distribution.map((platform, index) => (
-                        <div key={index} style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: 36, fontWeight: 'bold' }}>
-                            {platform.count}
-                          </div>
-                          <div style={{ marginTop: 8 }}>{platform.platform}</div>
-                          <div style={{ color: '#999', fontSize: 12, marginTop: 4 }}>
-                            {platform.percentage.toFixed(1)}%
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div style={{ textAlign: 'center', color: '#999', padding: 40 }}>
-                      暂无数据
-                    </div>
-                  )}
-                </Spin>
-              </Card>
-            </Col>
-          </Row>
+      {/* 仪表盘内容 */}
+      <div>
+        {/* 错误提示 */}
+        {(opinionError || trendError) && (
+          <Alert
+            message="数据加载失败"
+            description={opinionError || trendError}
+            type="error"
+            showIcon
+            style={{ marginBottom: 16 }}
+            onClose={() => {}}
+          />
+        )}
+        
+        {/* 控制面板 */}
+        <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+          <Select 
+            value={selectedDays} 
+            style={{ width: 120 }} 
+            onChange={(value) => setSelectedDays(value)}
+          >
+            <Select.Option value="7">近7天</Select.Option>
+            <Select.Option value="14">近14天</Select.Option>
+            <Select.Option value="30">近30天</Select.Option>
+          </Select>
+          <Button 
+            type="primary" 
+            icon={<SyncOutlined />} 
+            onClick={handleRefresh}
+            loading={refreshing}
+          >
+            刷新数据
+          </Button>
+          <Button 
+            icon={<DownloadOutlined />}
+            onClick={handleExportData}
+          >
+            导出报表
+          </Button>
         </div>
-      )}
+
+        {/* 统计卡片 */}
+        <Spin spinning={opinionLoading || trendLoading || refreshing} tip="加载中...">
+          <Row gutter={16}>
+            {stats.map((stat, index) => (
+              <Col xs={24} sm={12} md={8} key={index}>
+                <Card title={stat.title} style={{ height: '100%' }}>
+                  <Statistic
+                    value={stat.value}
+                    valueStyle={{ fontSize: 32 }}
+                    suffix={stat.description}
+                  />
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        </Spin>
+
+        <Divider />
+
+        {/* 趋势分析 */}
+        <TrendAnalysis timeRange={selectedDays} onTimeRangeChange={setSelectedDays} />
+
+        <Divider />
+
+        {/* 情感分布 */}
+        <Row gutter={16}>
+          <Col span={24}>
+            <Card title="情感分布">
+              <Spin spinning={opinionLoading || trendLoading} tip="加载中...">
+                {dashboardStats?.sentiment_distribution ? (
+                  <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: 24 }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 48, color: '#52c41a', fontWeight: 'bold' }}>
+                        {sentimentData.positive}%
+                      </div>
+                      <div style={{ color: '#52c41a', marginTop: 8 }}>正面</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 48, color: '#1890ff', fontWeight: 'bold' }}>
+                        {sentimentData.neutral}%
+                      </div>
+                      <div style={{ color: '#1890ff', marginTop: 8 }}>中性</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 48, color: '#ff7875', fontWeight: 'bold' }}>
+                        {sentimentData.negative}%
+                      </div>
+                      <div style={{ color: '#ff7875', marginTop: 8 }}>负面</div>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', color: '#999', padding: 40 }}>
+                    暂无数据
+                  </div>
+                )}
+              </Spin>
+            </Card>
+          </Col>
+        </Row>
+
+        <Divider />
+
+        {/* 平台分布 */}
+        <Row gutter={16}>
+          <Col span={24}>
+            <Card title="平台分布">
+              <Spin spinning={opinionLoading || trendLoading} tip="加载中...">
+                {dashboardStats?.platform_distribution && dashboardStats.platform_distribution.length > 0 ? (
+                  <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: 24 }}>
+                    {dashboardStats.platform_distribution.map((platform, index) => (
+                      <div key={index} style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 36, fontWeight: 'bold' }}>
+                          {platform.count}
+                        </div>
+                        <div style={{ marginTop: 8 }}>{platform.platform}</div>
+                        <div style={{ color: '#999', fontSize: 12, marginTop: 4 }}>
+                          {platform.percentage.toFixed(1)}%
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', color: '#999', padding: 40 }}>
+                    暂无数据
+                  </div>
+                )}
+              </Spin>
+            </Card>
+          </Col>
+        </Row>
+      </div>
 
     </div>
   )

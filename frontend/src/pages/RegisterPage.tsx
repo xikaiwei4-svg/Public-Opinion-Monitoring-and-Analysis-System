@@ -43,11 +43,6 @@ const RegisterPage: React.FC = () => {
         {/* 左侧信息区域 */}
         <Col xs={0} md={12} className="hidden md:flex items-center justify-center">
           <div className="text-center p-8">
-            <img 
-              src="https://api.dicebear.com/7.x/bottts/svg?seed=register" 
-              alt="注册" 
-              className="h-24 w-24 mx-auto mb-6"
-            />
             <Title level={2} className="mb-4">加入我们</Title>
             <Paragraph className="text-gray-600 mb-6">
               创建您的账号，开始使用校园舆情检测与热点话题分析系统

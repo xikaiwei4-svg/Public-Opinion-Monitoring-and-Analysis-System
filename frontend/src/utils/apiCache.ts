@@ -3,7 +3,7 @@ import { getOpinions as getOpinionsApi } from '../api/databaseApi';
 
 // 舆情数据类型定义
 interface Opinion {
-  _id: string;
+  id: string;
   content: string;
   platform: string;
   sentiment: 'positive' | 'negative' | 'neutral';

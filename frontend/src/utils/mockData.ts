@@ -24,8 +24,8 @@ export const handleApiRequest = async <T>(config: { method: string, url: string,
     return response.data as T;
   } catch (error) {
     console.error('API请求失败:', error);
-    // 返回模拟数据，不抛出错误
-    return {} as T;
+    // 抛出错误，让调用者处理
+    throw error;
   }
 };
 

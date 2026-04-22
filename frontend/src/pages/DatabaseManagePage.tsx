@@ -43,7 +43,8 @@ import {
   deleteCollection,
   getDatabaseConfig,
   runCrawler,
-  getOpinions
+  getOpinions,
+  getOpinionsWithTotal
 } from '../api/databaseApi'
 
 const { Title } = Typography
@@ -206,7 +207,7 @@ const DatabaseManagePage: React.FC = () => {
     setOpinionsLoading(true)
     try {
       // 首先获取总数
-      const firstBatch = await getOpinions(0, 1)
+      const firstBatch = await getOpinionsWithTotal(0, 1)
       const total = firstBatch.total || 0
       
       if (total === 0) {
@@ -222,7 +223,7 @@ const DatabaseManagePage: React.FC = () => {
       for (let i = 0; i < batches; i++) {
         const skip = i * batchSize
         const limit = Math.min(batchSize, total - skip)
-        const batch = await getOpinions(skip, limit)
+        const batch = await getOpinionsWithTotal(skip, limit)
         allOpinions = [...allOpinions, ...(batch.items || [])]
       }
       

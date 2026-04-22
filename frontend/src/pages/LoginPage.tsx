@@ -63,11 +63,6 @@ const LoginPage: React.FC = () => {
         {/* 左侧图片区域 */}
         <Col xs={0} md={12} className="hidden md:flex items-center justify-center">
           <div className="text-center p-8">
-            <img 
-              src="https://api.dicebear.com/7.x/bottts/svg?seed=campus" 
-              alt="校园舆情系统" 
-              className="h-24 w-24 mx-auto mb-6"
-            />
             <Title level={2} className="mb-4">校园舆情检测与热点话题分析系统</Title>
             <Paragraph className="text-gray-600 mb-6">
               全面监测校园热点，智能分析舆情趋势，助力校园管理决策

@@ -166,13 +166,48 @@ export const fetchPlatformDistribution = createAsyncThunk(
       
       const colors = ['#1890ff', '#52c41a', '#faad14', '#f5222d', '#722ed1', '#13c2c2'];
       
+      // 平台名称映射
+      const platformMap: { [key: string]: string } = {
+        'weibo': '微博',
+        'wechat': '微信',
+        'zhihu': '知乎',
+        'sina': '新浪',
+        'eol': '中国教育在线',
+        'jyb': '教育部',
+        'youth': '中国青年网',
+        'eduzhixin': '教育信息化',
+        'sohu': '搜狐',
+        '163': '网易',
+        'edu_cn': '中国教育网',
+        'ict_edu': '中国教育信息化',
+        'ceiea': '中国教育装备网',
+        'cscse': '中国留学服务中心',
+        'ifeng': '凤凰网',
+        'cetv': '中国教育电视台',
+        'edu_development': '教育发展',
+        'jybpaper': '教育报',
+        'eol_news': '中国教育在线新闻',
+        'eol_gaokao': '中国教育在线高考',
+        'eol_kaoyan': '中国教育在线考研',
+        'eol_teacher': '中国教育在线教师',
+        'chinakaoyan': '中国考研网',
+        'gaokao': '高考网',
+        'kaoyanbang': '考研帮',
+        'bjeea': '北京教育考试院',
+        'shmeea': '上海教育考试院',
+        'eeagd': '广东教育考试院'
+      };
+      
       // 转换数据格式以匹配前端期望的结构
-      return apiData.data.distribution_data.map((item: any, index: number) => ({
-        platform: item.platform,
+      const transformedData = apiData.data.distribution_data.map((item: any, index: number) => ({
+        platform: platformMap[item.platform] || '其他',
         count: item.count,
         percentage: item.percentage,
         color: colors[index % colors.length]
       }));
+      
+      // 过滤掉"其他"平台和数值过小的平台
+      return transformedData.filter(item => item.platform !== '其他' && item.count > 0 && item.percentage > 1);
     } catch (error) {
       console.error('获取平台分布数据失败:', error);
       return [];

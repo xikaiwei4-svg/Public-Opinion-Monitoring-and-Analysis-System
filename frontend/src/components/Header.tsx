@@ -8,8 +8,7 @@ const Header: React.FC = () => {
   // 模拟用户数据
   const mockUser = {
     name: '管理员',
-    username: 'admin',
-    avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=campus'
+    username: 'admin'
   }
 
   // 退出登录处理
@@ -52,36 +51,31 @@ const Header: React.FC = () => {
   ]
 
   return (
-    <AntHeader className="flex items-center justify-between px-4 bg-white shadow-md">
-      {/* 左侧 Logo 和标题 */}
+    <AntHeader className="flex items-center px-4 shadow-md" style={{ backgroundColor: '#ffffff', justifyContent: 'center' }}>
+      {/* 中间系统标题 */}
       <div className="flex items-center">
-        <img 
-          src="https://api.dicebear.com/7.x/bottts/svg?seed=campus" 
-          alt="校园舆情系统" 
-          className="h-8 w-8 mr-2"
-        />
-        <h1 className="text-xl font-bold text-blue-600 m-0">校园舆情检测与热点话题分析系统</h1>
+        <h1 className="text-xl font-bold text-blue-600 m-0 md:text-lg sm:text-base text-center">校园舆情检测与热点话题分析系统</h1>
       </div>
 
       {/* 右侧用户信息和通知 */}
-      <div className="flex items-center">
+      <div className="flex items-center space-x-4 ml-auto">
         {/* 通知图标 */}
-        <Badge count={5} showZero>
+        <Badge count={0} showZero>
           <BellOutlined 
-            className="text-gray-600 cursor-pointer text-xl mx-4 hover:text-blue-600 transition-colors"
+            className="text-gray-600 cursor-pointer text-xl hover:text-blue-600 transition-colors"
           />
         </Badge>
 
         {/* 用户头像和下拉菜单 */}
         <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-          <Space className="cursor-pointer">
-            <Avatar icon={<UserOutlined />} className="bg-blue-500">
+          <div className="flex items-center cursor-pointer">
+            <Avatar icon={<UserOutlined />} className="bg-blue-500 mr-2">
               {mockUser.username?.charAt(0)?.toUpperCase()}
             </Avatar>
             <span className="hidden md:inline text-gray-700 font-medium">
               {mockUser.name || mockUser.username}
             </span>
-          </Space>
+          </div>
         </Dropdown>
       </div>
     </AntHeader>

@@ -1,33 +1,44 @@
-import React, { useEffect, useCallback, useMemo, useState } from 'react'
-import { Card, Typography, Select, Button, Spin, Alert, Row, Col, Table, Space, Tag, DatePicker, Checkbox, Input, Modal, Dropdown } from 'antd'
-import { useDispatch, useSelector } from 'react-redux'
-import { fetchOpinionTrend, fetchSentimentTrend, fetchPlatformDistribution, selectOpinionTrend, selectSentimentTrend, selectPlatformDistribution, selectTrendLoading, selectTrendError, setSelectedPlatform, selectTrendSelectedPlatform } from '../store/features/trendSlice'
-import { ArrowUpOutlined, ArrowDownOutlined, SyncOutlined, DownloadOutlined, FilterOutlined, EyeOutlined, ExportOutlined, LineChartOutlined } from '@ant-design/icons'
-import ChartComponent from './optimized/ChartComponent'
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { Card, Typography, Select, Button, Space, Tag, Row, Col, Table, Alert, Modal, DatePicker, Checkbox, Input, Dropdown } from 'antd';
+import { useDispatch, useSelector } from 'react-redux';
+import { 
+  fetchOpinionTrend, 
+  fetchSentimentTrend, 
+  fetchPlatformDistribution, 
+  selectOpinionTrend, 
+  selectSentimentTrend, 
+  selectPlatformDistribution, 
+  selectTrendLoading, 
+  selectTrendError, 
+  setSelectedPlatform, 
+  selectTrendSelectedPlatform 
+} from '../../store/features/trendSlice';
+import { ArrowUpOutlined, ArrowDownOutlined, SyncOutlined, ExportOutlined, EyeOutlined, LineChartOutlined, FilterOutlined } from '@ant-design/icons';
+import ChartComponent from './ChartComponent';
 
-const { Title, Text } = Typography
-const { Option } = Select
+const { Title, Text } = Typography;
+const { Option } = Select;
 
-export interface TrendAnalysisProps {
-  timeRange?: string
-  onTimeRangeChange?: (value: string) => void
-  type?: 'line' | 'area' | 'pie'
-  data?: any[]
-  xField?: string
-  yField?: string
-  yFields?: string[]
-  height?: number
-  showCharts?: boolean
-  enableFilter?: boolean
+interface TrendAnalysisProps {
+  timeRange?: string;
+  onTimeRangeChange?: (value: string) => void;
+  type?: 'line' | 'area' | 'pie';
+  data?: any[];
+  xField?: string;
+  yField?: string;
+  yFields?: string[];
+  height?: number;
+  showCharts?: boolean;
+  enableFilter?: boolean;
 }
 
 // 表格组件
 const DataTable: React.FC<{
-  columns: any[]
-  dataSource: any[]
-  loading: boolean
-  emptyText: string
-}> = ({ columns, dataSource, loading, emptyText }) => (
+  columns: any[];
+  dataSource: any[];
+  loading: boolean;
+  emptyText: string;
+}> = React.memo(({ columns, dataSource, loading, emptyText }) => (
   <Table
     columns={columns}
     dataSource={dataSource}
@@ -37,9 +48,7 @@ const DataTable: React.FC<{
     size="small"
     scroll={{ x: 'max-content' }}
   />
-)
-
-
+));
 
 const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({ 
   timeRange = '7', 
@@ -53,20 +62,20 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
   showCharts = true,
   enableFilter = true
 }) => {
-  const dispatch = useDispatch()
-  const [viewMode, setViewMode] = useState<'table' | 'chart'>('table')
-  const [filterModalVisible, setFilterModalVisible] = useState(false)
-  const [dateRange, setDateRange] = useState<[string, string] | null>(null)
-  const [searchKeyword, setSearchKeyword] = useState('')
-  const [selectedSentiments, setSelectedSentiments] = useState<string[]>(['positive', 'neutral', 'negative'])
+  const dispatch = useDispatch();
+  const [viewMode, setViewMode] = useState<'table' | 'chart'>('table');
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [dateRange, setDateRange] = useState<[string, string] | null>(null);
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [selectedSentiments, setSelectedSentiments] = useState<string[]>(['positive', 'neutral', 'negative']);
   
   // 只有在没有type和data时才订阅Redux状态
-  const opinionTrend = !type && !data ? useSelector(selectOpinionTrend) : []
-  const sentimentTrend = !type && !data ? useSelector(selectSentimentTrend) : []
-  const platformDistribution = !type && !data ? useSelector(selectPlatformDistribution) : []
-  const loading = !type && !data ? useSelector(selectTrendLoading) : false
-  const error = !type && !data ? useSelector(selectTrendError) : null
-  const selectedPlatform = !type && !data ? useSelector(selectTrendSelectedPlatform) : null
+  const opinionTrend = !type && !data ? useSelector(selectOpinionTrend) : [];
+  const sentimentTrend = !type && !data ? useSelector(selectSentimentTrend) : [];
+  const platformDistribution = !type && !data ? useSelector(selectPlatformDistribution) : [];
+  const loading = !type && !data ? useSelector(selectTrendLoading) : false;
+  const error = !type && !data ? useSelector(selectTrendError) : null;
+  const selectedPlatform = !type && !data ? useSelector(selectTrendSelectedPlatform) : null;
   
   // 获取数据
   useEffect(() => {
@@ -76,65 +85,65 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
       dispatch(fetchSentimentTrend({ days: timeRange as '7' | '15' | '30', platform: selectedPlatform || undefined }));
       dispatch(fetchPlatformDistribution({ days: timeRange as '7' | '15' | '30' }));
     }
-  }, [dispatch, type, data, onTimeRangeChange, timeRange, selectedPlatform])
+  }, [dispatch, type, data, onTimeRangeChange, timeRange, selectedPlatform]);
 
   // 使用实际数据
-  const trendData = useMemo(() => Array.isArray(opinionTrend) ? opinionTrend : [], [opinionTrend])
-  const sentimentData = useMemo(() => Array.isArray(sentimentTrend) ? sentimentTrend : [], [sentimentTrend])
-  const platformDistData = useMemo(() => Array.isArray(platformDistribution) ? platformDistribution : [], [platformDistribution])
+  const trendData = useMemo(() => Array.isArray(opinionTrend) ? opinionTrend : [], [opinionTrend]);
+  const sentimentData = useMemo(() => Array.isArray(sentimentTrend) ? sentimentTrend : [], [sentimentTrend]);
+  const platformDistData = useMemo(() => Array.isArray(platformDistribution) ? platformDistribution : [], [platformDistribution]);
 
   // 计算趋势变化
   const trendChange = useMemo(() => {
-    if (trendData.length < 2) return { change: 0, percentage: 0 }
-    const latest = trendData[trendData.length - 1].count
-    const previous = trendData[trendData.length - 2].count
-    const change = latest - previous
-    const percentage = previous > 0 ? (change / previous) * 100 : 0
-    return { change, percentage }
-  }, [trendData])
+    if (trendData.length < 2) return { change: 0, percentage: 0 };
+    const latest = trendData[trendData.length - 1].count;
+    const previous = trendData[trendData.length - 2].count;
+    const change = latest - previous;
+    const percentage = previous > 0 ? (change / previous) * 100 : 0;
+    return { change, percentage };
+  }, [trendData]);
 
   // 计算统计指标
   const statistics = useMemo(() => {
-    const totalCount = trendData.reduce((sum, item) => sum + item.count, 0)
-    const avgDailyCount = trendData.length > 0 ? totalCount / trendData.length : 0
-    const maxCount = Math.max(...trendData.map(item => item.count))
+    const totalCount = trendData.reduce((sum, item) => sum + item.count, 0);
+    const avgDailyCount = trendData.length > 0 ? totalCount / trendData.length : 0;
+    const maxCount = Math.max(...trendData.map(item => item.count));
     
     const sentimentStats = sentimentData.length > 0 ? {
       positive: sentimentData.reduce((sum, item) => sum + item.positive, 0),
       neutral: sentimentData.reduce((sum, item) => sum + item.neutral, 0),
       negative: sentimentData.reduce((sum, item) => sum + item.negative, 0)
-    } : { positive: 0, neutral: 0, negative: 0 }
+    } : { positive: 0, neutral: 0, negative: 0 };
     
     return {
       totalCount,
       avgDailyCount: avgDailyCount.toFixed(1),
       maxCount,
       sentimentStats
-    }
-  }, [trendData, sentimentData])
+    };
+  }, [trendData, sentimentData]);
 
   // 处理时间范围变化
   const handleTimeRangeChange = useCallback((value: string) => {
     if (onTimeRangeChange) {
-      onTimeRangeChange(value)
+      onTimeRangeChange(value);
     } else {
       dispatch(fetchOpinionTrend({ days: value as '7' | '15' | '30', platform: selectedPlatform || undefined }));
       dispatch(fetchSentimentTrend({ days: value as '7' | '15' | '30', platform: selectedPlatform || undefined }));
       dispatch(fetchPlatformDistribution({ days: value as '7' | '15' | '30' }));
     }
-  }, [dispatch, onTimeRangeChange, selectedPlatform])
+  }, [dispatch, onTimeRangeChange, selectedPlatform]);
 
   // 处理平台选择
   const handlePlatformChange = useCallback((value: string | null) => {
     dispatch(setSelectedPlatform(value));
-  }, [dispatch])
+  }, [dispatch]);
 
   // 刷新数据
   const handleRefresh = useCallback(() => {
     dispatch(fetchOpinionTrend({ days: timeRange, platform: selectedPlatform || undefined }));
     dispatch(fetchSentimentTrend({ days: timeRange, platform: selectedPlatform || undefined }));
     dispatch(fetchPlatformDistribution({ days: timeRange }));
-  }, [dispatch, timeRange, selectedPlatform])
+  }, [dispatch, timeRange, selectedPlatform]);
 
   // 导出数据
   const handleExportData = useCallback(() => {
@@ -144,49 +153,49 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
       platformDistribution: platformDistData,
       statistics: statistics,
       exportTime: new Date().toISOString()
-    }
+    };
     
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `trend_data_${new Date().toISOString().split('T')[0]}.json`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  }, [trendData, sentimentData, platformDistData, statistics])
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `trend_data_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [trendData, sentimentData, platformDistData, statistics]);
 
   // 导出为CSV
   const handleExportCSV = useCallback(() => {
-    const headers = ['日期', '舆情数量', '热度指数']
+    const headers = ['日期', '舆情数量', '热度指数'];
     const csvContent = [
       headers.join(','),
       ...trendData.map(item => [item.date, item.count, item.heat].join(','))
-    ].join('\n')
+    ].join('\n');
     
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `trend_data_${new Date().toISOString().split('T')[0]}.csv`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  }, [trendData])
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `trend_data_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [trendData]);
 
   // 应用筛选
   const handleApplyFilter = useCallback(() => {
     // 这里可以添加筛选逻辑
-    setFilterModalVisible(false)
-  }, [])
+    setFilterModalVisible(false);
+  }, []);
 
   // 渲染自定义表格
   const renderCustomTable = useCallback(() => {
-    if (!data || !Array.isArray(data) || data.length === 0) return null
+    if (!data || !Array.isArray(data) || data.length === 0) return null;
     
-    let columns: any[] = []
+    let columns: any[] = [];
     
     // 构建列
     columns.push({
@@ -194,14 +203,14 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
       dataIndex: xField || 'date',
       key: xField || 'date',
       render: (text: any, record: any) => record[xField || 'date'] || record.platform || record.name
-    })
+    });
     
     if (type === 'line' && yField) {
       columns.push({
         title: yField,
         dataIndex: yField,
         key: yField
-      })
+      });
     }
     
     if (type === 'area' && yFields) {
@@ -210,8 +219,8 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
           title: field === 'positive' ? '正面' : field === 'negative' ? '负面' : field === 'neutral' ? '中性' : field,
           dataIndex: field,
           key: field
-        })
-      })
+        });
+      });
     }
     
     if (type === 'pie') {
@@ -220,13 +229,13 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
         dataIndex: 'platform',
         key: 'platform',
         render: (text: any, record: any) => record.platform || record.name
-      })
+      });
       columns.push({
         title: '数量',
         dataIndex: 'count',
         key: 'count',
         render: (text: any, record: any) => record.count || record.value
-      })
+      });
     }
     
     return (
@@ -238,8 +247,8 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
           emptyText="暂无数据"
         />
       </div>
-    )
-  }, [type, data, xField, yField, yFields, height])
+    );
+  }, [type, data, xField, yField, yFields, height]);
 
   // 舆情趋势表格列配置
   const opinionTrendColumns = useMemo(() => [
@@ -261,7 +270,7 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
       key: 'heat',
       sorter: (a: any, b: any) => a.heat - b.heat
     }
-  ], [])
+  ], []);
 
   // 情感趋势表格列配置
   const sentimentTrendColumns = useMemo(() => [
@@ -292,7 +301,7 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
       sorter: (a: any, b: any) => a.negative - b.negative,
       render: (value: number) => <Tag color="red">{value}</Tag>
     }
-  ], [])
+  ], []);
 
   // 平台分布表格列配置
   const platformDistributionColumns = useMemo(() => [
@@ -313,12 +322,12 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
       key: 'percentage',
       render: (value: number) => `${value}%`
     }
-  ], [])
+  ], []);
 
   // 如果提供了type和data，渲染指定类型的表格
   if (type && data) {
     try {
-      return renderCustomTable()
+      return renderCustomTable();
     } catch (error) {
       console.error('表格渲染错误:', error);
       return (
@@ -336,15 +345,15 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
         <Card 
           title="趋势分析"
           extra={
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
+            <Space size="middle">
               {/* 视图切换 */}
               {showCharts && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                <Space>
                   <Button 
                     type={viewMode === 'table' ? 'primary' : 'default'}
                     size="small"
                     icon={<EyeOutlined />}
-                    onClick={() =>setViewMode('table')}
+                    onClick={() => setViewMode('table')}
                   >
                     表格视图
                   </Button>
@@ -352,16 +361,16 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
                     type={viewMode === 'chart' ? 'primary' : 'default'}
                     size="small"
                     icon={<LineChartOutlined />}
-                    onClick={() =>setViewMode('chart')}
+                    onClick={() => setViewMode('chart')}
                   >
                     图表视图
                   </Button>
-                </div>
+                </Space>
               )}
               
               {/* 当有onTimeRangeChange时，不显示时间范围选择器和刷新按钮 */}
               {!onTimeRangeChange && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                <>
                   <Select 
                     value={timeRange} 
                     style={{ width: 100 }} 
@@ -383,7 +392,7 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
                     <Button 
                       size="small" 
                       icon={<FilterOutlined />}
-                      onClick={() =>setFilterModalVisible(true)}
+                      onClick={() => setFilterModalVisible(true)}
                     >
                       筛选
                     </Button>
@@ -398,7 +407,7 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
                       导出
                     </Button>
                   </Dropdown>
-                </div>
+                </>
               )}
               <Select 
                 placeholder="选择平台"
@@ -413,7 +422,7 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
                   </Option>
                 ))}
               </Select>
-            </div>
+            </Space>
           }
         >
           {error && (
@@ -428,22 +437,22 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
 
           {/* 统计卡片 */}
           <Row gutter={16} style={{ marginBottom: '24px' }}>
-            <Col xs={24} sm={12} md={6}>
+            <Col span={6}>
               <Card size="small" title="总舆情数">
                 <Text strong style={{ fontSize: '24px', color: '#1890ff' }}>{statistics.totalCount}</Text>
               </Card>
             </Col>
-            <Col xs={24} sm={12} md={6}>
+            <Col span={6}>
               <Card size="small" title="日均舆情数">
                 <Text strong style={{ fontSize: '24px', color: '#52c41a' }}>{statistics.avgDailyCount}</Text>
               </Card>
             </Col>
-            <Col xs={24} sm={12} md={6}>
+            <Col span={6}>
               <Card size="small" title="最高日舆情数">
                 <Text strong style={{ fontSize: '24px', color: '#faad14' }}>{statistics.maxCount}</Text>
               </Card>
             </Col>
-            <Col xs={24} sm={12} md={6}>
+            <Col span={6}>
               <Card size="small" title="趋势变化">
                 <Text 
                   strong 
@@ -501,19 +510,19 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
             <>
               <Row gutter={16} style={{ marginBottom: '24px' }}>
                 <Col span={24}>
-                  <ChartComponent type="line" data={trendData} height={300} />
+                  <ChartComponent type="line" data={trendData} height={300} title="舆情数量趋势" />
                 </Col>
               </Row>
 
               <Row gutter={16} style={{ marginBottom: '24px' }}>
                 <Col span={24}>
-                  <ChartComponent type="bar" data={sentimentData} height={300} />
+                  <ChartComponent type="bar" data={sentimentData} height={300} title="情感分布趋势" />
                 </Col>
               </Row>
               
               <Row gutter={16}>
                 <Col span={24}>
-                  <ChartComponent type="pie" data={platformDistData} height={300} />
+                  <ChartComponent type="pie" data={platformDistData} height={300} title="平台分布" />
                 </Col>
               </Row>
             </>
@@ -525,7 +534,7 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
           title="数据筛选"
           open={filterModalVisible}
           onOk={handleApplyFilter}
-          onCancel={() =>setFilterModalVisible(false)}
+          onCancel={() => setFilterModalVisible(false)}
         >
           <Space direction="vertical" style={{ width: '100%' }}>
             <div>
@@ -534,9 +543,9 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
                 style={{ width: '100%' }}
                 onChange={(dates) => {
                   if (dates) {
-                    setDateRange([dates[0]?.format('YYYY-MM-DD') || '', dates[1]?.format('YYYY-MM-DD') || ''])
+                    setDateRange([dates[0]?.format('YYYY-MM-DD') || '', dates[1]?.format('YYYY-MM-DD') || '']);
                   } else {
-                    setDateRange(null)
+                    setDateRange(null);
                   }
                 }}
               />
@@ -547,7 +556,7 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
               <Input 
                 placeholder="输入关键词"
                 value={searchKeyword}
-                onChange={(e) =>setSearchKeyword(e.target.value)}
+                onChange={(e) => setSearchKeyword(e.target.value)}
               />
             </div>
             
@@ -558,9 +567,9 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
                   checked={selectedSentiments.includes('positive')}
                   onChange={(e) => {
                     if (e.target.checked) {
-                      setSelectedSentiments([...selectedSentiments, 'positive'])
+                      setSelectedSentiments([...selectedSentiments, 'positive']);
                     } else {
-                      setSelectedSentiments(selectedSentiments.filter(s => s !== 'positive'))
+                      setSelectedSentiments(selectedSentiments.filter(s => s !== 'positive'));
                     }
                   }}
                 >
@@ -570,9 +579,9 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
                   checked={selectedSentiments.includes('neutral')}
                   onChange={(e) => {
                     if (e.target.checked) {
-                      setSelectedSentiments([...selectedSentiments, 'neutral'])
+                      setSelectedSentiments([...selectedSentiments, 'neutral']);
                     } else {
-                      setSelectedSentiments(selectedSentiments.filter(s => s !== 'neutral'))
+                      setSelectedSentiments(selectedSentiments.filter(s => s !== 'neutral'));
                     }
                   }}
                 >
@@ -582,9 +591,9 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
                   checked={selectedSentiments.includes('negative')}
                   onChange={(e) => {
                     if (e.target.checked) {
-                      setSelectedSentiments([...selectedSentiments, 'negative'])
+                      setSelectedSentiments([...selectedSentiments, 'negative']);
                     } else {
-                      setSelectedSentiments(selectedSentiments.filter(s => s !== 'negative'))
+                      setSelectedSentiments(selectedSentiments.filter(s => s !== 'negative'));
                     }
                   }}
                 >
@@ -595,7 +604,7 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
           </Space>
         </Modal>
       </div>
-    )
+    );
   } catch (error) {
     console.error('默认表格渲染错误:', error);
     return (
@@ -604,8 +613,8 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
       </div>
     );
   }
-})
+});
 
-TrendAnalysis.displayName = 'TrendAnalysis'
+TrendAnalysis.displayName = 'TrendAnalysis';
 
-export default TrendAnalysis
+export default TrendAnalysis;

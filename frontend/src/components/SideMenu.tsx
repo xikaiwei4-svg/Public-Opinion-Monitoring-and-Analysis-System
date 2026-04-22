@@ -1,5 +1,5 @@
 import React from 'react'
-import { Layout, Menu } from 'antd'
+import { Layout, Menu, Button } from 'antd'
 import {
   PieChartOutlined,
   LineChartOutlined,
@@ -8,7 +8,8 @@ import {
   UserOutlined,
   SettingOutlined,
   HomeOutlined,
-  DatabaseOutlined
+  DatabaseOutlined,
+  MenuOutlined
 } from '@ant-design/icons'
 import { useNavigate, useLocation } from 'react-router-dom'
 
@@ -19,6 +20,7 @@ const SideMenu: React.FC = () => {
   const location = useLocation()
   const currentPath = location.pathname
   const [collapsed, setCollapsed] = React.useState(true)
+  const [visible, setVisible] = React.useState(false)
 
   // 模拟权限数据
   const mockPermissions = ['read', 'admin']
@@ -90,6 +92,11 @@ const SideMenu: React.FC = () => {
     setCollapsed(!collapsed)
   }
 
+  // 切换侧边栏显示/隐藏
+  const toggleVisible = () => {
+    setVisible(!visible)
+  }
+
   // 计算当前活动的菜单项key
   const getCurrentKey = () => {
     // 检查是否有精确匹配的路径
@@ -117,35 +124,56 @@ const SideMenu: React.FC = () => {
     onClick: () => {
       console.log(`点击了${item.label}`)
       navigate(item.route)
+      // 点击菜单项后自动隐藏侧边栏
+      setVisible(false)
     }
   }))
 
   return (
-    <Sider
-      width={200}
-      collapsible
-      collapsed={collapsed}
-      onCollapse={toggleCollapsed}
-      className="bg-white shadow-md"
-      theme="light"
-      style={{
-        overflow: 'auto',
-        height: '100vh',
-        position: 'fixed',
-        left: 0,
-        top: 64,
-        bottom: 0,
-        zIndex: 1000
-      }}
-    >
-      <Menu
-        mode="inline"
-        selectedKeys={[getCurrentKey()]}
-        style={{ height: '100%', borderRight: 0 }}
-        className="pt-4"
-        items={menuItemsForAntd}
+    <>
+      {/* 侧边栏触发按钮 */}
+      <Button
+        type="primary"
+        icon={<MenuOutlined />}
+        onClick={toggleVisible}
+        style={{
+          position: 'fixed',
+          left: 10,
+          top: 80,
+          zIndex: 999,
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
+        }}
       />
-    </Sider>
+
+      {/* 侧边栏 */}
+      <Sider
+        width={200}
+        collapsible
+        collapsed={collapsed}
+        onCollapse={toggleCollapsed}
+        className="bg-white shadow-md"
+        theme="light"
+        style={{
+          overflow: 'auto',
+          height: '100vh',
+          position: 'fixed',
+          left: 0,
+          top: 64,
+          bottom: 0,
+          zIndex: visible ? 1000 : -1,
+          transform: visible ? 'translateX(0)' : 'translateX(-100%)',
+          transition: 'transform 0.3s ease-in-out, z-index 0s'
+        }}
+      >
+        <Menu
+          mode="inline"
+          selectedKeys={[getCurrentKey()]}
+          style={{ height: '100%', borderRight: 0 }}
+          className="pt-4"
+          items={menuItemsForAntd}
+        />
+      </Sider>
+    </>
   )
 }
 
