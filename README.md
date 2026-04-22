@@ -15,8 +15,10 @@
 ### 后端
 - **框架**: FastAPI (Python)
 - **数据库**: MySQL + SQLAlchemy ORM
+- **消息队列**: Kafka
 - **任务调度**: Celery + Redis
 - **数据处理**: Pandas, NumPy
+- **多线程**: Python threading
 
 ### 前端
 - **框架**: React 18 + TypeScript
@@ -41,8 +43,18 @@ project1/
 │   │   ├── mysql_database_router.py  # 数据库管理API
 │   │   ├── sentiment_router.py       # 情感分析API
 │   │   └── ...
+│   ├── kafka/              # Kafka相关
+│   │   ├── kafka_config.py     # Kafka配置
+│   │   ├── kafka_producer.py   # Kafka生产者
+│   │   ├── kafka_consumer.py   # Kafka消费者
+│   │   └── start_consumers.py  # 启动消费者
 │   ├── tasks/              # 异步任务
-│   │   └── crawler_tasks.py # 爬虫任务
+│   │   ├── crawler_tasks.py      # 爬虫任务
+│   │   └── multi_thread_crawler.py # 多线程爬虫
+│   ├── scripts/            # 脚本
+│   │   ├── sync_hot_topics.py     # 热点话题同步
+│   │   ├── schedule_crawler.py    # 定时爬虫
+│   │   └── ...
 │   └── requirements.txt    # Python依赖
 │
 ├── frontend/               # 前端代码
@@ -53,8 +65,10 @@ project1/
 │   │   │   ├── DatabaseManagePage.tsx # 数据库管理
 │   │   │   └── ...
 │   │   ├── components/    # 通用组件
+│   │   │   └── optimized/  # 优化组件
 │   │   ├── store/         # Redux状态管理
 │   │   ├── api/           # API接口封装
+│   │   ├── utils/         # 工具函数
 │   │   └── App.tsx        # 应用入口
 │   ├── package.json       # Node.js依赖
 │   └── vite.config.ts     # Vite配置
@@ -68,6 +82,7 @@ project1/
 - Python 3.10+
 - Node.js 18+
 - MySQL 8.0+
+- Kafka (可选，用于实时数据流处理)
 
 ### 1. 克隆项目
 
@@ -104,7 +119,16 @@ python -m uvicorn main:app --host 0.0.0.0 --port 8001
 后端服务将在 http://localhost:8001 运行
 API文档: http://localhost:8001/docs
 
-### 3. 前端部署
+### 3. Kafka启动 (可选)
+
+```bash
+# 在项目根目录执行
+python start_kafka_system.py
+```
+
+此脚本会尝试启动Kafka服务、后端服务、Kafka消费者和前端服务。如果Kafka未安装，将使用模拟模式运行。
+
+### 4. 前端部署
 
 ```bash
 # 进入前端目录
@@ -126,23 +150,38 @@ npm run dev
 - 支持关键词搜索和筛选
 - 情感倾向分析（正面/负面/中性）
 - 数据来源平台分布
+- 敏感内容检测和分级
 
 ### 2. 热点话题
 - 自动识别热点话题
 - 话题趋势分析
 - 相关舆情关联
+- 热度值计算和排序
 
 ### 3. 数据可视化
 - 舆情趋势图
-- 平台分布饼图
+- 平台分布饼图（优化版）
 - 情感分析柱状图
 - 热点词云
+- 数据过滤和优化
 
 ### 4. 数据库管理
 - 数据库状态监控
 - 数据集合管理
 - 爬虫任务管理
 - 数据导入导出
+
+### 5. Kafka实时数据流
+- 实时数据传输和处理
+- 多主题消息管理
+- 生产者和消费者服务
+- 模拟模式支持
+
+### 6. 多线程爬虫
+- 多平台并行数据爬取
+- 连接池管理
+- 错误处理和重试机制
+- 定时任务调度
 
 ## 🔧 配置说明
 
@@ -190,6 +229,14 @@ server: {
 - `GET /api/hot_topics/{id}` - 获取话题详情
 - `GET /api/hot_topics/trend` - 获取话题趋势
 
+### 趋势分析接口
+- `GET /api/trend/analysis` - 获取趋势分析数据
+
+### Kafka接口
+- `GET /api/kafka/status` - 获取Kafka状态
+- `POST /api/kafka/send` - 发送消息到Kafka
+- `GET /api/kafka/topics` - 获取Kafka主题列表
+
 ## 🎯 项目亮点
 
 1. **前后端分离架构**: 使用FastAPI + React实现前后端分离
@@ -197,8 +244,11 @@ server: {
 3. **组件化开发**: 使用React组件化思想，提高代码复用性
 4. **状态管理**: 使用Redux Toolkit进行全局状态管理
 5. **类型安全**: 使用TypeScript进行类型约束
-6. **数据可视化**: 使用ECharts实现丰富的图表展示
-7. **性能优化**: 实现数据分页加载，优化大数据量展示性能
+6. **数据可视化**: 使用ECharts实现丰富的图表展示，优化图表性能
+7. **实时数据流**: 集成Kafka实现实时数据传输和处理
+8. **多线程爬虫**: 实现多平台并行数据爬取，提高数据获取效率
+9. **错误处理**: 完善的错误处理和重试机制
+10. **性能优化**: 实现数据分页加载，优化大数据量展示性能
 
 ## 📈 项目成果
 
