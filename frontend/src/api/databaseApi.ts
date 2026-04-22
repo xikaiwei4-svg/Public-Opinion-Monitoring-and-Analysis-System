@@ -55,7 +55,7 @@ export const getCrawlerTaskStatus = async (taskId: string) => {
 // 获取舆情数据列表
 export const getOpinions = async (skip: number = 0, limit: number = 100) => {
   const response = await api.get(`/api/database/opinions?skip=${skip}&limit=${limit}`)
-  return response.data
+  return response.data.items || []
 }
 
 // 获取舆情数据列表（带总数）

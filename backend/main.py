@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+"""
+校园舆情检测与热点话题分析系统后端
+"""
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -21,6 +24,7 @@ from utils.redis_cache import redis_cache
 from utils.db_utils import db_utils
 from db.mysql_config import get_db
 from models.mysql_models import Opinion, HotTopic, TrendData
+from sqlalchemy import func
 
 # 配置日志
 logging.basicConfig(

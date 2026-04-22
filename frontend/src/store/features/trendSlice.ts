@@ -74,18 +74,27 @@ export const fetchOpinionTrend = createAsyncThunk(
     platform?: string;
   }) => {
     try {
+      // 计算日期范围
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(endDate.getDate() - parseInt(params.days));
+      
+      // 格式化为YYYY-MM-DD
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+      
       // 直接调用后端趋势分析API
-      const response = await fetch(`/api/trend/opinion?days=${params.days}${params.platform ? `&platform=${params.platform}` : ''}`);
+      const response = await fetch(`/api/trend/analysis?start_date=${startDateStr}&end_date=${endDateStr}${params.platform ? `&source=${params.platform}` : ''}`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const apiData = await response.json();
       
       // 转换数据格式以匹配前端期望的结构
-      return apiData.map((item: any) => ({
+      return apiData.data.trend_data.map((item: any) => ({
         date: item.date,
-        count: item.count,
-        heat: Math.round(item.count * 1.5) // 热度值计算
+        count: item.total_count,
+        heat: Math.round(item.total_count * 1.5) // 热度值计算
       }));
     } catch (error) {
       console.error('获取舆情趋势数据失败:', error);
@@ -102,19 +111,28 @@ export const fetchSentimentTrend = createAsyncThunk(
     platform?: string;
   }) => {
     try {
+      // 计算日期范围
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(endDate.getDate() - parseInt(params.days));
+      
+      // 格式化为YYYY-MM-DD
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+      
       // 直接调用后端情感趋势API
-      const response = await fetch(`/api/trend/sentiment?days=${params.days}${params.platform ? `&platform=${params.platform}` : ''}`);
+      const response = await fetch(`/api/trend/analysis?start_date=${startDateStr}&end_date=${endDateStr}${params.platform ? `&source=${params.platform}` : ''}`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const apiData = await response.json();
       
       // 直接返回API数据，格式已经匹配
-      return apiData.map((item: any) => ({
+      return apiData.data.trend_data.map((item: any) => ({
         date: item.date,
-        positive: item.positive,
-        negative: item.negative,
-        neutral: item.neutral
+        positive: item.positive_count,
+        negative: item.negative_count,
+        neutral: item.neutral_count
       }));
     } catch (error) {
       console.error('获取情感趋势数据失败:', error);
@@ -130,8 +148,17 @@ export const fetchPlatformDistribution = createAsyncThunk(
     days: '7' | '15' | '30';
   }) => {
     try {
+      // 计算日期范围
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(endDate.getDate() - parseInt(params.days));
+      
+      // 格式化为YYYY-MM-DD
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+      
       // 直接调用后端平台分布API
-      const response = await fetch(`/api/trend/platform-distribution?days=${params.days}`);
+      const response = await fetch(`/api/trend/analysis/platform?start_date=${startDateStr}&end_date=${endDateStr}`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -140,7 +167,7 @@ export const fetchPlatformDistribution = createAsyncThunk(
       const colors = ['#1890ff', '#52c41a', '#faad14', '#f5222d', '#722ed1', '#13c2c2'];
       
       // 转换数据格式以匹配前端期望的结构
-      return apiData.map((item: any, index: number) => ({
+      return apiData.data.distribution_data.map((item: any, index: number) => ({
         platform: item.platform,
         count: item.count,
         percentage: item.percentage,

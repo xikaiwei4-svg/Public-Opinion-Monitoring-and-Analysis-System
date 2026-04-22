@@ -7,6 +7,10 @@ import os
 import logging
 from typing import Dict, Optional, List
 
+# 加载.env文件
+from dotenv import load_dotenv
+load_dotenv()
+
 from .user_model import User, LoginRequest, LoginResponse, UserCreate, UserUpdate, ApiResponse
 
 # 创建路由实例

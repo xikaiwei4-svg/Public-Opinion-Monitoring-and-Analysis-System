@@ -148,8 +148,7 @@ export const fetchApiData = async (skip: number = 0, limit: number = 1000): Prom
     console.log(`[${new Date().toISOString()}] 发送API请求: ${cacheKey}`);
     fetchPromises[cacheKey] = (async () =>{
       const startTime = Date.now();
-      const apiResponse = await getOpinionsApi(skip, limit) as ApiResponse;
-      const apiData = apiResponse.items || [];
+      const apiData = await getOpinionsApi(skip, limit);
       const endTime = Date.now();
       
       console.log(`[${new Date().toISOString()}] API请求完成: ${cacheKey}, 耗时: ${endTime - startTime}ms, 返回 ${apiData.length} 条数据`);

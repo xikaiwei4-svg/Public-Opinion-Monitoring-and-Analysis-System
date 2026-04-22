@@ -1,12 +1,14 @@
 from fastapi import APIRouter, HTTPException, Query
 from typing import List, Optional
 from datetime import datetime, timedelta
-from db.mongo_client import hot_topics_collection, opinion_collection
-from models.opinion_model import HotTopicModel, SourcePlatform
+from db.mysql_config import get_db
+from models.mysql_models import HotTopic, Opinion
+from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 # 创建路由实例
 router = APIRouter(
-    prefix="/api/热点",
+    prefix="/api/hot-topic",
     tags=["热点分析"],
     responses={404: {"description": "未找到"}},
 )
@@ -15,7 +17,7 @@ router = APIRouter(
 async def get_hot_topics(
     days: int = Query(7, ge=1, le=30, description="统计过去天数"),
     limit: int = Query(10, ge=1, le=50, description="返回热点数量"),
-    platform: Optional[SourcePlatform] = Query(None, description="平台筛选"),
+    platform: Optional[str] = Query(None, description="平台筛选"),
     min_heat_score: float = Query(0.0, ge=0.0, le=100.0, description="最低热度分数")
 ):
     """
@@ -26,26 +28,36 @@ async def get_hot_topics(
         end_date = datetime.now()
         start_date = end_date - timedelta(days=days)
         
-        # 构建查询条件
-        query = {
-            "start_time": {"$gte": start_date},
-            "end_time": {"$lte": end_date},
-            "heat_score": {"$gte": min_heat_score}
-        }
+        # 获取数据库会话
+        db = next(get_db())
         
-        if platform:
-            query["platforms"] = platform
+        # 构建查询
+        query = db.query(HotTopic).filter(
+            HotTopic.last_seen >= start_date,
+            HotTopic.last_seen <= end_date
+        )
         
-        # 查询热点话题并按热度降序排序
-        cursor = hot_topics_collection.find(query)
-        cursor = cursor.sort("heat_score", -1).limit(limit)
-        hot_topics = await cursor.to_list(length=limit)
+        # 执行查询并按提及次数降序排序
+        hot_topics = query.order_by(HotTopic.mention_count.desc()).limit(limit).all()
+        
+        # 转换为字典列表
+        hot_topics_list = []
+        for topic in hot_topics:
+            hot_topics_list.append({
+                "id": topic.id,
+                "topic": topic.topic,
+                "keyword": topic.keyword,
+                "mention_count": topic.mention_count,
+                "trend": topic.trend,
+                "first_seen": topic.first_seen.isoformat() if topic.first_seen else None,
+                "last_seen": topic.last_seen.isoformat() if topic.last_seen else None
+            })
         
         return {
             "code": 200,
             "data": {
-                "items": hot_topics,
-                "total": len(hot_topics),
+                "items": hot_topics_list,
+                "total": len(hot_topics_list),
                 "time_range": f"{start_date.strftime('%Y-%m-%d')} 至 {end_date.strftime('%Y-%m-%d')}"
             },
             "message": "查询成功"
@@ -54,31 +66,58 @@ async def get_hot_topics(
         raise HTTPException(status_code=500, detail=f"服务器错误：{str(e)}")
 
 @router.get("/{id}", response_model=dict)
-async def get_hot_topic_detail(id: str):
+async def get_hot_topic_detail(id: int):
     """
     获取热点话题的详细信息
     """
     try:
+        # 获取数据库会话
+        db = next(get_db())
+        
         # 查询热点话题
-        hot_topic = await hot_topics_collection.find_one({"id": id})
+        hot_topic = db.query(HotTopic).filter(HotTopic.id == id).first()
         
         if not hot_topic:
             raise HTTPException(status_code=404, detail="热点话题不存在")
         
         # 获取相关舆情数据（最新10条）
-        related_opinions = await opinion_collection.find({
-            "$or": [
-                {"content": {"$regex": hot_topic["topic"], "$options": "i"}},
-                {"keywords": {"$in": hot_topic["keywords"]}}
-            ]
-        }).sort("publish_time", -1).limit(10).to_list(length=10)
+        related_opinions = db.query(Opinion).filter(
+            func.or_(
+                Opinion.content.like(f"%{hot_topic.topic}%"),
+                Opinion.keywords.like(f"%{hot_topic.keyword}%")
+            )
+        ).order_by(Opinion.publish_time.desc()).limit(10).all()
         
-        # 添加相关舆情信息
-        hot_topic["related_opinions"] = related_opinions
+        # 转换为字典列表
+        related_opinions_list = []
+        for opinion in related_opinions:
+            related_opinions_list.append({
+                "id": opinion.id,
+                "title": opinion.title,
+                "content": opinion.content,
+                "source_platform": opinion.source_platform,
+                "author": opinion.author,
+                "publish_time": opinion.publish_time.isoformat() if opinion.publish_time else None,
+                "sentiment": opinion.sentiment,
+                "hot_score": opinion.hot_score
+            })
+        
+        # 构建热点话题详情
+        hot_topic_detail = {
+            "id": hot_topic.id,
+            "topic": hot_topic.topic,
+            "keyword": hot_topic.keyword,
+            "mention_count": hot_topic.mention_count,
+            "sentiment_distribution": hot_topic.sentiment_distribution,
+            "trend": hot_topic.trend,
+            "first_seen": hot_topic.first_seen.isoformat() if hot_topic.first_seen else None,
+            "last_seen": hot_topic.last_seen.isoformat() if hot_topic.last_seen else None,
+            "related_opinions": related_opinions_list
+        }
         
         return {
             "code": 200,
-            "data": hot_topic,
+            "data": hot_topic_detail,
             "message": "查询成功"
         }
     except HTTPException:
@@ -99,6 +138,9 @@ async def get_hot_topic_trend(
         end_date = datetime.now()
         start_date = end_date - timedelta(days=days)
         
+        # 获取数据库会话
+        db = next(get_db())
+        
         # 构建每天的查询条件
         trend_data = []
         current_date = start_date
@@ -107,28 +149,26 @@ async def get_hot_topic_trend(
             next_day = current_date + timedelta(days=1)
             
             # 查询当天该话题的舆情数量
-            daily_count = await opinion_collection.count_documents({
-                "$or": [
-                    {"content": {"$regex": topic, "$options": "i"}},
-                    {"keywords": {"$regex": topic, "$options": "i"}}
-                ],
-                "publish_time": {"$gte": current_date, "$lt": next_day}
-            })
+            daily_count = db.query(func.count(Opinion.id)).filter(
+                func.or_(
+                    Opinion.content.like(f"%{topic}%"),
+                    Opinion.keywords.like(f"%{topic}%")
+                ),
+                Opinion.publish_time >= current_date,
+                Opinion.publish_time < next_day
+            ).scalar() or 0
             
             # 查询当天该话题的热度总和
-            pipeline = [
-                {"$match": {
-                    "$or": [
-                        {"content": {"$regex": topic, "$options": "i"}},
-                        {"keywords": {"$regex": topic, "$options": "i"}}
-                    ],
-                    "publish_time": {"$gte": current_date, "$lt": next_day}
-                }},
-                {"$group": {"_id": None, "total_heat": {"$sum": "$heat_score"}}}
-            ]
+            heat_result = db.query(func.sum(Opinion.hot_score)).filter(
+                func.or_(
+                    Opinion.content.like(f"%{topic}%"),
+                    Opinion.keywords.like(f"%{topic}%")
+                ),
+                Opinion.publish_time >= current_date,
+                Opinion.publish_time < next_day
+            ).scalar() or 0
             
-            heat_result = await opinion_collection.aggregate(pipeline).to_list(length=1)
-            avg_heat = heat_result[0]["total_heat"] / daily_count if daily_count > 0 else 0
+            avg_heat = heat_result / daily_count if daily_count > 0 else 0
             
             # 添加当天数据
             trend_data.append({
@@ -168,33 +208,37 @@ async def compare_hot_topics(
         end_date = datetime.now()
         start_date = end_date - timedelta(days=days)
         
+        # 获取数据库会话
+        db = next(get_db())
+        
         comparison_data = []
         
         for topic in topics:
             # 查询该话题的总舆情数量
-            total_count = await opinion_collection.count_documents({
-                "$or": [
-                    {"content": {"$regex": topic, "$options": "i"}},
-                    {"keywords": {"$regex": topic, "$options": "i"}}
-                ],
-                "publish_time": {"$gte": start_date, "$lte": end_date}
-            })
+            total_count = db.query(func.count(Opinion.id)).filter(
+                func.or_(
+                    Opinion.content.like(f"%{topic}%"),
+                    Opinion.keywords.like(f"%{topic}%")
+                ),
+                Opinion.publish_time >= start_date,
+                Opinion.publish_time <= end_date
+            ).scalar() or 0
             
-            # 查询该话题的平均热度
-            pipeline = [
-                {"$match": {
-                    "$or": [
-                        {"content": {"$regex": topic, "$options": "i"}},
-                        {"keywords": {"$regex": topic, "$options": "i"}}
-                    ],
-                    "publish_time": {"$gte": start_date, "$lte": end_date}
-                }},
-                {"$group": {"_id": None, "avg_heat": {"$avg": "$heat_score"}, "avg_sentiment": {"$avg": "$sentiment"}}}
-            ]
+            # 查询该话题的平均热度和平均情感
+            result = db.query(
+                func.avg(Opinion.hot_score).label('avg_heat'),
+                func.avg(Opinion.sentiment_score).label('avg_sentiment')
+            ).filter(
+                func.or_(
+                    Opinion.content.like(f"%{topic}%"),
+                    Opinion.keywords.like(f"%{topic}%")
+                ),
+                Opinion.publish_time >= start_date,
+                Opinion.publish_time <= end_date
+            ).first()
             
-            result = await opinion_collection.aggregate(pipeline).to_list(length=1)
-            avg_heat = round(result[0]["avg_heat"], 2) if result and "avg_heat" in result[0] else 0
-            avg_sentiment = round(result[0]["avg_sentiment"], 2) if result and "avg_sentiment" in result[0] else 0
+            avg_heat = round(result.avg_heat or 0, 2)
+            avg_sentiment = round(result.avg_sentiment or 0, 2)
             
             # 添加比较数据
             comparison_data.append({

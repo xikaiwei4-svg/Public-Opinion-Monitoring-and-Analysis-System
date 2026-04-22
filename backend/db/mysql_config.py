@@ -14,6 +14,7 @@ class MySQLSettings(BaseSettings):
     
     class Config:
         env_file = ".env"
+        extra = "allow"
 
 # 获取配置
 settings = MySQLSettings()

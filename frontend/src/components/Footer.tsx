@@ -31,13 +31,7 @@ const Footer: React.FC = () => {
             </Text>
           </Col>
         </Row>
-        <Row className="mt-2">
-          <Col span={24}>
-            <Text type="secondary" className="text-xs">
-              本系统仅用于校园舆情监测和研究，未经授权请勿使用。
-            </Text>
-          </Col>
-        </Row>
+
       </div>
     </AntFooter>
   )
