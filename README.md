@@ -91,58 +91,6 @@ git clone <your-repo-url>
 cd project1
 ```
 
-### 2. 后端部署
-
-```bash
-# 进入后端目录
-cd backend
-
-# 创建虚拟环境
-python -m venv .venv
-
-# 激活虚拟环境
-# Windows:
-.venv\Scripts\activate
-# Linux/Mac:
-source .venv/bin/activate
-
-# 安装依赖
-pip install -r requirements.txt
-
-# 配置数据库
-# 修改 backend/db/mysql_config.py 中的数据库连接信息
-
-# 启动服务
-python -m uvicorn main:app --host 0.0.0.0 --port 8001
-```
-
-后端服务将在 http://localhost:8001 运行
-API文档: http://localhost:8001/docs
-
-### 3. Kafka启动 (可选)
-
-```bash
-# 在项目根目录执行
-python start_kafka_system.py
-```
-
-此脚本会尝试启动Kafka服务、后端服务、Kafka消费者和前端服务。如果Kafka未安装，将使用模拟模式运行。
-
-### 4. 前端部署
-
-```bash
-# 进入前端目录
-cd frontend
-
-# 安装依赖
-npm install
-
-# 启动开发服务器
-npm run dev
-```
-
-前端应用将在 http://localhost:3000 运行
-
 ## 📊 核心功能
 
 ### 1. 舆情监测
@@ -274,10 +222,3 @@ server: {
 - 姓名: [Your Name]
 - 邮箱: [Your Email]
 - GitHub: [Your GitHub]
-
-## 🙏 致谢
-
-- [FastAPI](https://fastapi.tiangolo.com/) - 高性能Web框架
-- [React](https://reactjs.org/) - 前端框架
-- [Ant Design](https://ant.design/) - UI组件库
-- [ECharts](https://echarts.apache.org/) - 可视化库
