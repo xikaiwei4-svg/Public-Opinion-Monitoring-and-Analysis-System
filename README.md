@@ -131,34 +131,6 @@ cd project1
 - 错误处理和重试机制
 - 定时任务调度
 
-## 🔧 配置说明
-
-### 数据库配置
-编辑 `backend/db/mysql_config.py`:
-
-```python
-class MySQLSettings(BaseSettings):
-    MYSQL_HOST: str = "localhost"
-    MYSQL_PORT: int = 3306
-    MYSQL_USER: str = "your_username"
-    MYSQL_PASSWORD: str = "your_password"
-    MYSQL_DATABASE: str = "campus_opinion"
-```
-
-### 前端代理配置
-编辑 `frontend/vite.config.ts`:
-
-```typescript
-server: {
-  proxy: {
-    '/api': {
-      target: 'http://localhost:8001',
-      changeOrigin: true
-    }
-  }
-}
-```
-
 ## 📝 API接口
 
 ### 舆情数据接口
