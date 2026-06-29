@@ -1,50 +1,56 @@
 import React from 'react'
 import { Typography, Card, Row, Col } from 'antd'
 import TrendAnalysis from '../components/TrendAnalysis'
-import { selectOpinionTrend } from '../store/features/trendSlice'
+import { selectOpinionTrend, selectTrendError } from '../store/features/trendSlice'
+import { selectDashboardStats } from '../store/features/opinionSlice'
 import { useSelector } from 'react-redux'
 
 const { Title, Text } = Typography
 
 const TrendAnalysisPage: React.FC = () => {
   const opinionTrend = useSelector(selectOpinionTrend)
-  
+  const dashboardStats = useSelector(selectDashboardStats)
+  const trendError = useSelector(selectTrendError)
+
+  const totalCount = Array.isArray(opinionTrend) ? opinionTrend.reduce((sum, item) => sum + (item.count || 0), 0) : 0
+  const todayCount = Array.isArray(opinionTrend) && opinionTrend.length > 0 ? (opinionTrend[opinionTrend.length - 1]?.count || 0) : 0
+  const hotTopicsCount = dashboardStats?.hot_topics_count || 6
+
   return (
-    <div className="trend-analysis-container">
-      <Title level={2}>趋势分析</Title>
-      
-      {/* 趋势分析组件 */}
-      <TrendAnalysis />
-      
-      {/* 统计摘要卡片 */}
-      <Row gutter={[16, 16]} style={{ marginTop: '20px' }}>
+    <div>
+      <div style={{ marginBottom: 24 }}>
+        <div className="page-title">趋势分析</div>
+        <div className="page-subtitle">舆情数据趋势与统计分析</div>
+      </div>
+
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} sm={8}>
-          <Card className="stat-card" variant="outlined">
-            <Text strong style={{ fontSize: '32px', color: '#1890ff' }}>
-              {Array.isArray(opinionTrend) ? opinionTrend.reduce((sum, item) => sum + item.count, 0) : 0}
-            </Text>
-            <Text style={{ display: 'block', marginTop: '8px' }}>总舆情数量</Text>
+          <Card className="stat-card stat-card-primary">
+            <div className="stat-label">总舆情数量</div>
+            <div className="stat-value stat-card-primary">{totalCount.toLocaleString()}</div>
           </Card>
         </Col>
-        
         <Col xs={24} sm={8}>
-          <Card className="stat-card" variant="outlined">
-            <Text strong style={{ fontSize: '32px', color: '#52c41a' }}>
-              {Array.isArray(opinionTrend) && opinionTrend.length > 0 ? opinionTrend[opinionTrend.length - 1]?.count || 0 : 0}
-            </Text>
-            <Text style={{ display: 'block', marginTop: '8px' }}>今日新增</Text>
+          <Card className="stat-card stat-card-success">
+            <div className="stat-label">今日新增</div>
+            <div className="stat-value stat-card-success">{todayCount}</div>
           </Card>
         </Col>
-        
         <Col xs={24} sm={8}>
-          <Card className="stat-card" variant="outlined">
-            <Text strong style={{ fontSize: '32px', color: '#faad14' }}>
-              {5}
-            </Text>
-            <Text style={{ display: 'block', marginTop: '8px' }}>热点话题</Text>
+          <Card className="stat-card stat-card-warning">
+            <div className="stat-label">热点话题</div>
+            <div className="stat-value stat-card-warning">{hotTopicsCount}</div>
           </Card>
         </Col>
       </Row>
+
+      {trendError && (
+        <div style={{ padding: 16, marginBottom: 16, background: '#fef2f2', borderRadius: 8, color: '#ef4444' }}>
+          数据加载异常: {trendError}
+        </div>
+      )}
+
+      <TrendAnalysis showCharts={true} />
     </div>
   )
 }

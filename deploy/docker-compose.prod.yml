@@ -1,0 +1,81 @@
+﻿# ============================================================
+# deploy/docker-compose.prod.yml — 生产环境覆盖配置
+# 与根目录 docker-compose.yml 叠加使用:
+#   docker compose \
+#     -f docker-compose.yml \
+#     -f deploy/docker-compose.prod.yml \
+#     --env-file .env \
+#     up -d
+# ============================================================
+#
+# 变量说明:
+#   ${REGISTRY_ENDPOINT}  — 镜像仓库地址 (来自 GitHub Secrets)
+#   ${TAG}                — 镜像标签 (默认 latest)
+#   ${MYSQL_PASSWORD}     — 数据库密码 (来自 GitHub Secrets → .env 文件)
+#   ${SECRET_KEY}         — JWT 密钥 (来自 GitHub Secrets → .env 文件)
+# ============================================================
+
+version: "3.8"
+
+services:
+
+  mysql:
+    # 生产环境使用官方镜像（不覆盖）
+    image: mysql:8.0
+    restart: always
+    # 资源限制
+    mem_limit: 1g
+    # CPU 限制在 Docker Compose 中仅 swarm 模式生效，
+    # 单机模式用 mem_limit 即可
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  redis:
+    # 生产环境使用官方镜像
+    image: redis:7-alpine
+    restart: always
+    mem_limit: 512m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  backend:
+    # 从镜像仓库拉取（不在本地构建）
+    image: ${REGISTRY_ENDPOINT:?REGISTRY_ENDPOINT 未设置}/campus-backend:${TAG:-latest}
+    restart: always
+    mem_limit: 2g
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # 生产环境不暴露 8000 端口到宿主机
+    #（前端 Nginx 通过内网 campus-net 访问）
+    expose:
+      - "8000"
+    ports: []  # 覆盖 docker-compose.yml 的端口映射
+
+  frontend:
+    # 从镜像仓库拉取
+    image: ${REGISTRY_ENDPOINT:?REGISTRY_ENDPOINT 未设置}/campus-frontend:${TAG:-latest}
+    restart: always
+    mem_limit: 256m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # HTTPS 端口 + SSL 证书挂载
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Let's Encrypt 证书（可用 certbot 申请）
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      # 可选：覆盖镜像内 nginx.conf，启用 SSL
+      # - ./deploy/nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro

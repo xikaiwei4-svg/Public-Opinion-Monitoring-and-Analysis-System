@@ -1,196 +1,232 @@
-# 校园舆情监测与热点话题分析系统
+﻿# 校园舆情监控与热点话题分析系统
 
-一套基于大数据技术的校园舆情实时监测系统，支持多平台数据采集、情感分析、热点话题挖掘及可视化展示。
+> **生产就绪** · FastAPI + React + Docker + CI/CD
 
-## 🚀 项目特点
+基于大数据技术的校园舆情实时监控系统，支持多平台数据采集、情感分析、热点挖掘及可视化展示。
 
-- **实时监测**: 多平台数据实时采集和分析
-- **情感分析**: 自动识别舆情情感倾向（正面/负面/中性）
-- **热点挖掘**: 智能识别校园热点话题和趋势
-- **可视化展示**: 丰富的图表展示和数据可视化
-- **数据管理**: 完善的数据库管理和爬虫任务调度
+---
 
-## 🛠️ 技术栈
+## 技术栈
 
-### 后端
-- **框架**: FastAPI (Python)
-- **数据库**: MySQL + SQLAlchemy ORM
-- **消息队列**: Kafka
-- **任务调度**: Celery + Redis
-- **数据处理**: Pandas, NumPy
-- **多线程**: Python threading
+| 层 | 技术 |
+|------|------|
+| **后端** | Python 3.11, FastAPI, SQLAlchemy, PyMySQL |
+| **前端** | React 18, TypeScript, Ant Design, ECharts |
+| **数据库** | MySQL 8.0, Redis 7 (缓存) |
+| **ML 引擎** | BERT (transformers) + sklearn |
+| **Deploy** | Docker Compose, Nginx, GitHub Actions CI/CD |
 
-### 前端
-- **框架**: React 18 + TypeScript
-- **状态管理**: Redux Toolkit
-- **UI组件**: Ant Design
-- **构建工具**: Vite
-- **可视化**: ECharts
-
-## 📁 项目结构
-
-```
-project1/
-├── backend/                 # 后端代码
-│   ├── main.py             # FastAPI主入口
-│   ├── db/                 # 数据库配置
-│   │   ├── mysql_config.py # MySQL连接配置
-│   │   └── ...
-│   ├── models/             # 数据模型
-│   │   ├── mysql_models.py # MySQL模型定义
-│   │   └── ...
-│   ├── routers/            # API路由
-│   │   ├── mysql_database_router.py  # 数据库管理API
-│   │   ├── sentiment_router.py       # 情感分析API
-│   │   └── ...
-│   ├── kafka/              # Kafka相关
-│   │   ├── kafka_config.py     # Kafka配置
-│   │   ├── kafka_producer.py   # Kafka生产者
-│   │   ├── kafka_consumer.py   # Kafka消费者
-│   │   └── start_consumers.py  # 启动消费者
-│   ├── tasks/              # 异步任务
-│   │   ├── crawler_tasks.py      # 爬虫任务
-│   │   └── multi_thread_crawler.py # 多线程爬虫
-│   ├── scripts/            # 脚本
-│   │   ├── sync_hot_topics.py     # 热点话题同步
-│   │   ├── schedule_crawler.py    # 定时爬虫
-│   │   └── ...
-│   └── requirements.txt    # Python依赖
-│
-├── frontend/               # 前端代码
-│   ├── src/
-│   │   ├── pages/         # 页面组件
-│   │   │   ├── Dashboard.tsx         # 数据仪表盘
-│   │   │   ├── OpinionListPage.tsx   # 舆情列表
-│   │   │   ├── DatabaseManagePage.tsx # 数据库管理
-│   │   │   └── ...
-│   │   ├── components/    # 通用组件
-│   │   │   └── optimized/  # 优化组件
-│   │   ├── store/         # Redux状态管理
-│   │   ├── api/           # API接口封装
-│   │   ├── utils/         # 工具函数
-│   │   └── App.tsx        # 应用入口
-│   ├── package.json       # Node.js依赖
-│   └── vite.config.ts     # Vite配置
-│
-└── README.md              # 项目说明
-```
-
-## 🚀 快速开始
-
-### 环境要求
-- Python 3.10+
-- Node.js 18+
-- MySQL 8.0+
-- Kafka (可选，用于实时数据流处理)
-
-### 1. 克隆项目
+## 快速启动（Docker）
 
 ```bash
-git clone <your-repo-url>
-cd project1
+# 1. 创建环境变量文件
+cp .env.example .env
+# 编辑 .env，填写 MYSQL_PASSWORD 和 SECRET_KEY
+
+# 2. 一键启动所有服务
+docker compose up -d
+
+# 3. 初始化数据库表
+docker exec campus-backend python /app/scripts/init_db.py
+
+# 4. 访问
+#    前端:     http://localhost
+#    API:     http://localhost:8001/docs
+#    Swagger: http://localhost:8000/docs
 ```
 
-## 📊 核心功能
+## 生产部署
 
-### 1. 舆情监测
-- 实时展示最新舆情数据
-- 支持关键词搜索和筛选
-- 情感倾向分析（正面/负面/中性）
-- 数据来源平台分布
-- 敏感内容检测和分级
+### 完整部署架构
 
-### 2. 热点话题
-- 自动识别热点话题
-- 话题趋势分析
-- 相关舆情关联
-- 热度值计算和排序
+```
+                    ┌─────────────┐
+                    │  浏览器访问   │
+                    │  :80/:443   │
+                    └──────┬──────┘
+                           │
+                    ┌──────▼──────┐
+                    │   Nginx     │  ← frontend 容器
+                    │  (反向代理)  │
+                    └──┬──────┬───┘
+                       │      │
+          ┌────────────┘      └────────────┐
+          ▼                                  ▼
+  ┌───────────────┐               ┌──────────────────┐
+  │  /api/* 代理  │               │  静态文件（前端） │
+  │  backend:8000 │               │  /usr/share/...   │
+  └───────┬───────┘               └──────────────────┘
+          │
+  ┌───────▼───────┐     ┌────────────────┐
+  │  FastAPI 后端  │────▶│  Redis (缓存)   │
+  │  campus-net   │     └────────────────┘
+  └───────┬───────┘
+          │
+  ┌───────▼───────┐
+  │  MySQL 8.0    │
+  │  (持久化)     │
+  └───────────────┘
+```
 
-### 3. 数据可视化
-- 舆情趋势图
-- 平台分布饼图（优化版）
-- 情感分析柱状图
-- 热点词云
-- 数据过滤和优化
+### 1. 准备服务器
 
-### 4. 数据库管理
-- 数据库状态监控
-- 数据集合管理
-- 爬虫任务管理
-- 数据导入导出
+```bash
+# 安装 Docker（Ubuntu/Debian）
+curl -fsSL https://get.docker.com | sh
+sudo apt install -y docker-compose-plugin
 
-### 5. Kafka实时数据流
-- 实时数据传输和处理
-- 多主题消息管理
-- 生产者和消费者服务
-- 模拟模式支持
+# 创建部署目录
+mkdir -p /opt/campus-opinion
+```
 
-### 6. 多线程爬虫
-- 多平台并行数据爬取
-- 连接池管理
-- 错误处理和重试机制
-- 定时任务调度
+### 2. 配置 GitHub Secrets
 
-## 📝 API接口
+在 GitHub 仓库 → **Settings → Secrets and variables → Actions** 添加以下密钥：
 
-### 舆情数据接口
-- `GET /api/database/opinions` - 获取舆情列表
-- `GET /api/database/opinions/{id}` - 获取舆情详情
-- `POST /api/database/opinions` - 创建舆情数据
-- `DELETE /api/database/opinions/{id}` - 删除舆情数据
+| Secret | 说明 | 示例值 |
+|--------|------|--------|
+| `REGISTRY_ENDPOINT` | 镜像仓库地址 | `registry.cn-hangzhou.aliyuncs.com/你的命名空间` |
+| `REGISTRY_USERNAME` | 镜像仓库用户名 | — |
+| `REGISTRY_PASSWORD` | 镜像仓库密码 | — |
+| `DEPLOY_HOST` | 服务器 IP | `123.45.67.89` |
+| `DEPLOY_USER` | SSH 登录用户名 | `root` |
+| `DEPLOY_SSH_KEY` | SSH 私钥内容 | `cat ~/.ssh/id_rsa` 的输出 |
+| `PROD_DB_PASSWORD` | 生产数据库密码 | 16位+大小写数字符号 |
+| `PROD_SECRET_KEY` | JWT 签名密钥 | `python -c "import secrets; print(secrets.token_urlsafe(32))"` |
 
-### 情感分析接口
-- `GET /api/sentiment/analyze/{opinion_id}` - 分析单条舆情情感
-- `POST /api/sentiment/batch_analyze` - 批量分析情感
-- `GET /api/sentiment/statistics` - 获取情感统计
+### 3. 推送到 main 触发 CI/CD
 
-### 热点话题接口
-- `GET /api/hot_topics` - 获取热点话题列表
-- `GET /api/hot_topics/{id}` - 获取话题详情
-- `GET /api/hot_topics/trend` - 获取话题趋势
+```bash
+git init
+git add .
+git commit -m "initial"
+git remote add origin https://github.com/你的用户/仓库名.git
+git push -u origin main
+```
 
-### 趋势分析接口
-- `GET /api/trend/analysis` - 获取趋势分析数据
+CI/CD 流水线会自动执行：
+1. **CI** (ci.yml): 前端 lint + build → 后端语法检查 → Docker 构建检查
+2. **CD** (deploy.yml): 构建镜像推送到 ACR → SCP 配置文件 → SSH 部署重启
 
-### Kafka接口
-- `GET /api/kafka/status` - 获取Kafka状态
-- `POST /api/kafka/send` - 发送消息到Kafka
-- `GET /api/kafka/topics` - 获取Kafka主题列表
+### 4. SSL / HTTPS（选择其一）
 
-## 🎯 项目亮点
+**方案 A — certbot 自动（推荐）**
 
-1. **前后端分离架构**: 使用FastAPI + React实现前后端分离
-2. **响应式设计**: 支持PC端和移动端适配
-3. **组件化开发**: 使用React组件化思想，提高代码复用性
-4. **状态管理**: 使用Redux Toolkit进行全局状态管理
-5. **类型安全**: 使用TypeScript进行类型约束
-6. **数据可视化**: 使用ECharts实现丰富的图表展示，优化图表性能
-7. **实时数据流**: 集成Kafka实现实时数据传输和处理
-8. **多线程爬虫**: 实现多平台并行数据爬取，提高数据获取效率
-9. **错误处理**: 完善的错误处理和重试机制
-10. **性能优化**: 实现数据分页加载，优化大数据量展示性能
+```bash
+# SSH 登录服务器
+ssh root@你的服务器IP
 
-## 📈 项目成果
+# 安装 certbot
+apt install certbot python3-certbot-nginx
 
-- 成功采集并分析3000+条校园相关舆情数据
-- 实现实时数据更新和可视化展示
-- 系统响应时间 < 500ms
-- 支持并发访问
+# 申请证书（certbot 会自动修改 Nginx 配置）
+certbot --nginx -d yourdomain.com
 
-## 🤝 贡献指南
+# 验证自动续期
+certbot renew --dry-run
+```
 
-1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 打开 Pull Request
+**方案 B — 手动配置（无域名）**
 
-## 📄 许可证
+docker-compose.yml 中 `frontend` 服务的 `ports` 配置为 `"80:80"`，通过 HTTP 访问。
 
-本项目基于 MIT 许可证开源 - 查看 [LICENSE](LICENSE) 文件了解详情
+## CI/CD 流水线
 
-## 👨‍💻 作者
+### CI (`.github/workflows/ci.yml`)
 
-- 姓名: [xikaiwei]
-- 邮箱: [xikaiwei4@gmail.com]
-- GitHub: [xikaiwei4]
+| 作业 | 触发 | 内容 |
+|------|------|------|
+| `frontend-check` | push/PR main | Node 20 → npm ci → ESLint → tsc → build → artifact |
+| `backend-check` | push/PR main | Python 3.11 → pip install → compileall → pytest |
+| `docker-check` | push main 仅 | Docker Buildx → 构建 backend + frontend 镜像（不推送） |
+
+### CD (`.github/workflows/deploy.yml`)
+
+| 作业 | 触发 | 内容 |
+|------|------|------|
+| `build-and-push` | push main / workflow_dispatch | 构建镜像 → 推送到 ACR (sha + latest) |
+| `deploy` | build-and-push 成功后 | SCP 配置文件 → SSH → 生产 .env（用完销毁）→ pull → up -d → 健康检查 |
+
+## 数据库
+
+### 初始化
+
+```bash
+# 方式 1：Python 脚本（使用 SQLAlchemy ORM）
+docker exec campus-backend python /app/scripts/init_db.py
+docker exec campus-backend python /app/scripts/init_db.py --drop   # 重建
+
+# 方式 2：纯 SQL
+mysql -u root -p campus_opinion < backend/scripts/init_db.sql
+
+# 方式 3：编排脚本（建表 + 可选灌测试数据）
+bash backend/scripts/migrate.sh
+bash backend/scripts/migrate.sh --with-demo   # 含 30 天演示数据
+```
+
+### 迁移
+
+```bash
+python backend/scripts/init_db.py --verbose   # 先看 SQL，不执行
+python backend/scripts/init_db.py --drop      # 重建所有表（数据丢失！）
+```
+
+## 备份
+
+```bash
+# MySQL
+docker exec campus-mysql mysqldump -u root -p"$MYSQL_PASSWORD" campus_opinion > backup.sql
+
+# Redis（AOF 文件）
+docker run --rm -v campus_redis_data:/data -v $(pwd):/backup alpine \
+  cp /data/appendonly.aof /backup/
+
+# ML 模型文件
+tar czf models-backup.tar.gz -C backend ml/
+```
+
+## 健康检查
+
+| 端点 | 用途 | 正常返回 |
+|------|------|---------|
+| `GET /api/health` | Docker healthcheck 存活探针 | 200 `{ "status": "ok" }` |
+| `GET /api/health/ready` | 就绪探针（查 MySQL + Redis） | 200 或 503 |
+
+## 项目结构
+
+```
+campus-opinion/
+├── backend/                  # FastAPI 后端
+│   ├── main.py
+│   ├── Dockerfile
+│   ├── routers/              # API 路由
+│   │   ├── health_router.py
+│   │   ├── sentiment_router.py
+│   │   └── ...
+│   ├── models/               # SQLAlchemy 模型
+│   ├── scripts/              # 运维脚本
+│   │   ├── init_db.py
+│   │   ├── init_db.sql
+│   │   └── migrate.sh
+│   ├── tests/                # 测试
+│   │   ├── conftest.py
+│   │   └── test_health.py
+│   └── ml/                   # ML 模型文件
+│       ├── bert_sentiment.py
+│       ├── bert_classifier.pkl
+│       └── bert_embeddings.npz
+├── frontend/                 # React 前端
+│   ├── Dockerfile            # 多阶段构建
+│   ├── nginx.conf            # 生产 Nginx 配置
+│   ├── src/
+│   └── .env.production
+├── deploy/
+│   └── docker-compose.prod.yml  # 生产覆盖配置
+├── .github/workflows/
+│   ├── ci.yml                # CI 流水线
+│   └── deploy.yml            # CD 流水线
+├── docker-compose.yml        # 主编排文件
+├── redis.conf                # Redis 持久化配置
+└── .env.example              # 环境变量模板
+
+Powered by ❤️ and open source

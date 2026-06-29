@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { Typography, Table, Card, Select, Input, Button, DatePicker, Tag, Space, message, Spin } from 'antd'
-import { SearchOutlined, CalendarOutlined, FilterOutlined, DownloadOutlined, EyeOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons'
+import { Typography, Table, Card, Select, Input, Button, DatePicker, Tag, Space, message, Spin, Modal, Descriptions } from 'antd'
+import { SearchOutlined, DownloadOutlined, EyeOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons'
 import { useDispatch, useSelector } from 'react-redux'
 import { 
   fetchOpinions, 
@@ -36,7 +36,6 @@ const OpinionListPage: React.FC = () => {
 
   // 加载数据
   useEffect(() => {
-    console.log('OpinionListPage: Loading data...', { currentPage, pageSize, filters })
     dispatch(fetchOpinions({
       page: currentPage,
       pageSize: pageSize,
@@ -48,12 +47,7 @@ const OpinionListPage: React.FC = () => {
       is_sensitive: filters.is_sensitive,
       category: filters.category
     }) as any)
-  }, [dispatch, currentPage, pageSize])
-
-  // 调试信息
-  useEffect(() => {
-    console.log('OpinionListPage: Data updated', { opinions, total, loading, error })
-  }, [opinions, total, loading, error])
+  }, [dispatch, currentPage, pageSize, filters.keyword, filters.source, filters.sentiment_type, filters.start_time, filters.end_time, filters.is_sensitive, filters.category])
 
   // 处理搜索
   const handleSearch = (value: string) => {
@@ -83,30 +77,41 @@ const OpinionListPage: React.FC = () => {
     }
   }
 
-  // 处理导出
+  const [detailVisible, setDetailVisible] = useState(false)
+  const [detailItem, setDetailItem] = useState<any>(null)
+
+  // 导出
   const handleExport = () => {
-    message.success('舆情数据已导出')
+    const csv = [['ID,标题,内容,平台,情感,发布时间'].join(',')]
+    const rows = opinions.map((item: any) => `"${item.id}","${item.content?.slice(0,100) || ''}","${item.source_platform || ''}","${item.sentiment_type || ''}","${item.publish_time || ''}"`)
+    csv.push(...rows)
+    const blob = new Blob(['﻿' + csv.join('\n')], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a'); a.href = url
+    a.download = `opinions_${new Date().toISOString().slice(0,10)}.csv`
+    a.click(); URL.revokeObjectURL(url)
+    message.success(`已导出 ${opinionList.length} 条数据`)
   }
 
-  // 处理查看详情
+  // 查看详情
   const handleViewDetail = (record: any) => {
-    message.info(`查看舆情ID: ${record.id} 的详情`)
+    setDetailItem(record)
+    setDetailVisible(true)
   }
 
-  // 处理删除
-  const handleDelete = (record: any) => {
-    message.success(`已删除舆情ID: ${record.id}`)
-    dispatch(fetchOpinions({
-      page: currentPage,
-      pageSize: pageSize,
-      keyword: filters.keyword,
-      source: filters.source,
-      sentiment_type: filters.sentiment_type,
-      start_time: filters.start_time,
-      end_time: filters.end_time,
-      is_sensitive: filters.is_sensitive,
-      category: filters.category
-    }) as any)
+  // 删除
+  const handleDelete = async (record: any) => {
+    try {
+      const res = await fetch(`/api/opinion/${record.id}`, { method: 'DELETE' })
+      if (res.ok) {
+        message.success('已删除')
+        handleRefresh()
+      } else {
+        message.error('删除失败')
+      }
+    } catch {
+      message.error('删除失败')
+    }
   }
 
   // 处理刷新
@@ -296,14 +301,7 @@ const OpinionListPage: React.FC = () => {
           <Typography.Text type="danger">{error}</Typography.Text>
         </div>
       )}
-      
-      <div style={{ marginBottom: 16, padding: 8, background: '#f0f0f0' }}>
-        <Text>调试信息: 加载状态={loading ? '加载中' : '完成'}, 
-              数据条数={opinions?.length || 0}, 
-              总条数={total}, 
-              错误={error || '无'}</Text>
-      </div>
-      
+
       <Spin spinning={loading}>
         <Table 
           columns={columns} 
@@ -323,6 +321,30 @@ const OpinionListPage: React.FC = () => {
           }}
           scroll={{ x: 'max-content' }}
         />
+
+        {/* 详情弹窗 */}
+        <Modal
+          title="舆情详情"
+          open={detailVisible}
+          onCancel={() => setDetailVisible(false)}
+          footer={<Button onClick={() => setDetailVisible(false)}>关闭</Button>}
+          width={720}
+        >
+          {detailItem && (
+            <Descriptions column={2} bordered size="small">
+              <Descriptions.Item label="ID">{detailItem.id}</Descriptions.Item>
+              <Descriptions.Item label="情感">
+                <Tag color={detailItem.sentiment_type === 'positive' ? 'green' : detailItem.sentiment_type === 'negative' ? 'red' : 'blue'}>
+                  {detailItem.sentiment_type === 'positive' ? '正面' : detailItem.sentiment_type === 'negative' ? '负面' : '中性'}
+                </Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="平台" span={2}>{detailItem.source_platform}</Descriptions.Item>
+              <Descriptions.Item label="来源">{detailItem.source}</Descriptions.Item>
+              <Descriptions.Item label="发布时间">{detailItem.publish_time}</Descriptions.Item>
+              <Descriptions.Item label="内容" span={2}>{detailItem.content}</Descriptions.Item>
+            </Descriptions>
+          )}
+        </Modal>
       </Spin>
     </div>
   )

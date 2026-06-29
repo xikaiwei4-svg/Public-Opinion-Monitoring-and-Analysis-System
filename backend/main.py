@@ -1,454 +1,791 @@
-# -*- coding: utf-8 -*-
+﻿﻿# -*- coding: utf-8 -*-
+
 """
-校园舆情检测与热点话题分析系统后端
+
+鏍″洯鑸嗘儏妫€娴嬩笌鐑偣璇濋鍒嗘瀽绯荤粺鍚庣
+
 """
-from fastapi import FastAPI, HTTPException, Depends
+
+from fastapi import FastAPI, Request
+
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from typing import List, Optional
-from datetime import datetime, timedelta
+
+from fastapi.responses import JSONResponse, StreamingResponse, FileResponse, HTMLResponse
+
+from fastapi.staticfiles import StaticFiles
+
+from starlette.types import Scope
+
+import mimetypes
+
+
+
+# 闈欐€佹枃浠剁紦瀛樺ご涓棿浠?
+
+class CachedStaticFiles(StaticFiles):
+
+    async def __call__(self, scope: Scope, receive, send):
+
+        async def send_with_cache(event):
+
+            if event["type"] == "http.response.start":
+
+                headers = dict(event.get("headers", []))
+
+                path = scope.get("path", "")
+
+                if any(path.endswith(ext) for ext in (".js", ".css", ".woff2", ".png", ".jpg", ".svg", ".ico")):
+
+                    headers[b"cache-control"] = b"public, max-age=31536000, immutable"
+
+                elif path.endswith(".html"):
+
+                    headers[b"cache-control"] = b"public, max-age=0, must-revalidate"
+
+                event["headers"] = list(headers.items())
+
+            await send(event)
+
+        await super().__call__(scope, receive, send_with_cache)
+
+from datetime import datetime
+
 import uvicorn
+
 import json
+
 import logging
 
+import random
+
+import asyncio
+
+import time
+
+import os
+
+
+
+_startup_start = 0.0
+
+
+
+from routers.health_router import health_router
 from auth.auth_router import auth_router
-# from routers.database_router import router as database_router  # MongoDB路由
-from routers.mysql_database_router import router as database_router  # MySQL路由
-from routers.sentiment_router import router as sentiment_router  # 情感分析路由
-from routers.cnn_sentiment_router import router as cnn_sentiment_router  # CNN情感分析路由
-from routers.hot_topic_router import router as hot_topic_router  # 热点话题路由
-from routers.trend_router import router as trend_router  # 趋势分析路由
 
-# 导入工具模块
+from routers.mysql_database_router import router as database_router
+
+from routers.opinion_router import router as opinion_router
+
+from routers.sentiment_router import router as sentiment_router
+
+from routers.cnn_sentiment_router import router as cnn_sentiment_router
+
+from routers.hot_topic_router import router as hot_topic_router
+
+from routers.trend_router import router as trend_router
+
+
+
 from utils.redis_cache import redis_cache
-from utils.db_utils import db_utils
-from db.mysql_config import get_db
-from models.mysql_models import Opinion, HotTopic, TrendData
-from sqlalchemy import func
 
-# 配置日志
+
+
 logging.basicConfig(
+
     level=logging.INFO,
+
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+
 )
+
 logger = logging.getLogger(__name__)
 
-# 自定义JSONResponse，确保中文正确显示
+
+
+
+
 class CustomJSONResponse(JSONResponse):
+
     def render(self, content) -> bytes:
+
         return json.dumps(content, ensure_ascii=False, allow_nan=False, indent=None, separators=(",", ":")).encode("utf-8")
 
+
+
+
+
 app = FastAPI(
-    title="校园舆情检测与热点话题分析系统",
-    description="用于实时监控、分析和可视化校园相关舆情信息的平台",
+
+    title="鏍″洯鑸嗘儏妫€娴嬩笌鐑偣璇濋鍒嗘瀽绯荤粺",
+
+    description="鐢ㄤ簬瀹炴椂鐩戞帶銆佸垎鏋愬拰鍙鍖栨牎鍥浉鍏宠垎鎯呬俊鎭殑骞冲彴",
+
     version="2.0.0",
-    default_response_class=CustomJSONResponse
+
+    default_response_class=CustomJSONResponse,
+
 )
+
+
 
 app.add_middleware(
+
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:3003"],
+
+    allow_origins=os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(","),
     allow_credentials=True,
+
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+
     allow_headers=["*"],
+
 )
 
+
+
+app.include_router(health_router)
 app.include_router(auth_router)
+
 app.include_router(database_router)
+
+app.include_router(opinion_router)
+
 app.include_router(sentiment_router)
+
 app.include_router(cnn_sentiment_router)
+
 app.include_router(hot_topic_router)
+
 app.include_router(trend_router)
 
-# 初始化缓存
+
+
+# 鈹€鈹€ 闈欐€佹枃浠讹紙鐢熶骇鍓嶇鏋勫缓浜х墿锛夆攢鈹€
+
+FRONTEND_DIST = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "frontend", "dist")
+
+FRONTEND_DIST = os.path.abspath(FRONTEND_DIST)
+
+
+
+if os.path.exists(FRONTEND_DIST):
+
+    app.mount("/assets", CachedStaticFiles(directory=os.path.join(FRONTEND_DIST, "assets")), name="assets")
+
+    logger.info(f"鍓嶇闈欐€佹枃浠舵湇鍔″凡鍚敤: {FRONTEND_DIST}")
+
+else:
+
+    logger.warning(f"鍓嶇鏋勫缓浜х墿涓嶅瓨鍦? {FRONTEND_DIST}锛屼粎鎻愪緵API鏈嶅姟")
+
+
+
+
+
 @app.on_event("startup")
+
 async def startup_event():
-    """启动事件"""
-    logger.info("系统启动中...")
-    # 预热缓存
+
+    global _startup_start
+
+    _startup_start = time.time()
+
+
+
+    # ── 自动创建数据库表（首次启动时） ──
+
+    from db.mysql_config import create_tables
+
     try:
-        # 使用模拟数据，不依赖数据库
-        mock_hot_topics = [
-            {
-                "topic": "校园食堂改革",
-                "count": 156,
-                "sentiment": "neutral",
-                "platforms": ["微博", "知乎"],
-                "time_range": "最近7天"
-            },
-            {
-                "topic": "期末考试安排",
-                "count": 98,
-                "sentiment": "negative",
-                "platforms": ["微信", "QQ"],
-                "time_range": "最近7天"
-            }
-        ]
-        redis_cache.set("hot_topics:7days", mock_hot_topics, expire=3600)
-        logger.info("缓存预热完成（使用模拟数据）")
+
+        create_tables()
+
+        logger.info("数据库表已就绪")
+
     except Exception as e:
-        logger.warning(f"缓存预热失败: {e}")
+
+        logger.warning(f"建表失败（可能已存在）: {e}")
+
+
+
+    logger.info("绯荤粺鍚姩涓?..")
+
+
+
+    # 鈹€鈹€ 缂撳瓨棰勭儹锛堜粎鍏抽敭鏁版嵁锛屼笉鍔犺浇BERT锛夆攢鈹€
+
+    logger.info("寮€濮婻edis缂撳瓨棰勭儹锛堣交閲忔ā寮忥級...")
+
+
+
+    from db.mysql_config import SessionLocal
+
+    from models.mysql_models import Opinion, HotTopic, TrendData
+
+    from sqlalchemy import func
+
+
+
+    def warmup_dashboard_stats():
+
+        db = SessionLocal()
+
+        try:
+
+            total = db.query(Opinion).count()
+
+            hot = db.query(HotTopic).count()
+
+            views = db.query(func.sum(Opinion.read_count)).scalar() or 0
+
+            sentiment_stats = db.query(Opinion.sentiment, func.count(Opinion.id)).group_by(Opinion.sentiment).all()
+
+            dist = {"positive": 0, "negative": 0, "neutral": 0}
+
+            for s, c in sentiment_stats:
+
+                if s in dist:
+
+                    dist[s] = c
+
+            return {"total_count": total, "hot_topics_count": hot, "views_count": views, "sentiment_distribution": dist}
+
+        finally:
+
+            db.close()
+
+
+
+    def warmup_hot_topics():
+
+        db = SessionLocal()
+
+        try:
+
+            topics = db.query(HotTopic).order_by(HotTopic.mention_count.desc()).limit(50).all()
+
+            return [{"id": t.id, "topic": t.topic, "keyword": t.keyword, "mention_count": t.mention_count,
+
+                     "trend": t.trend, "first_seen": t.first_seen.isoformat() if t.first_seen else None,
+
+                     "last_seen": t.last_seen.isoformat() if t.last_seen else None} for t in topics]
+
+        finally:
+
+            db.close()
+
+
+
+    warmup_map = {
+
+        "cache:dashboard:stats": warmup_dashboard_stats,
+
+        "cache:hot:top50": warmup_hot_topics,
+
+    }
+
+
+
+    for key, func in warmup_map.items():
+
+        try:
+
+            data = func()
+
+            if data:
+
+                redis_cache.set(key, data, expire=600)
+
+                logger.info(f"缂撳瓨棰勭儹瀹屾垚: {key}")
+
+        except Exception as e:
+
+            logger.warning(f"缂撳瓨棰勭儹澶辫触 [{key}]: {e}")
+
+
+
+    logger.info(f"绯荤粺鍚姩瀹屾垚 ({time.time() - _startup_start:.1f}s) - Redis: {'鍙敤' if redis_cache.available else '鍐呭瓨妯″紡'} | BERT: 寤惰繜鍔犺浇")
+
+
+
+
 
 @app.on_event("shutdown")
+
 async def shutdown_event():
-    """关闭事件"""
-    logger.info("系统关闭中...")
 
-@app.get("/api/ping", tags=["基础接口"])
+    logger.info("绯荤粺鍏抽棴涓?..")
+
+
+
+
+
+@app.get("/", tags=["鍓嶇"])
+
+async def serve_root():
+
+    """鍓嶇棣栭〉"""
+
+    index_path = os.path.join(FRONTEND_DIST, "index.html")
+
+    if os.path.exists(index_path):
+
+        return FileResponse(index_path)
+
+    return HTMLResponse("<h1>API Server Running</h1>")
+
+
+
+
+
+@app.get("/api/ping", tags=["鍩虹鎺ュ彛"])
+
 async def ping():
-    return {"status": "ok", "message": "服务运行正常", "timestamp": datetime.now().isoformat()}
 
-@app.get("/api/auth/me", tags=["认证"])
-async def get_current_user():
-    """获取当前用户信息（模拟数据）"""
-    mock_user = {
-        "id": "1",
-        "username": "admin",
-        "email": "admin@example.com",
-        "name": "管理员",
-        "avatar": "/api/avatar/admin.png",
-        "role": "admin",
-        "department": "管理部门",
-        "position": "超级管理员",
-        "phone_number": "13800138000",
-        "status": "active",
-        "created_at": datetime.now().isoformat(),
-        "updated_at": datetime.now().isoformat(),
-        "last_login_at": datetime.now().isoformat(),
-        "permissions": ["read", "write", "edit", "delete", "admin"]
+    return {"status": "ok", "message": "鏈嶅姟杩愯姝ｅ父", "timestamp": datetime.now().isoformat()}
+
+
+
+
+
+@app.get("/api/cache/status", tags=["鍩虹鎺ュ彛"])
+
+async def cache_status():
+
+    """鏌ョ湅缂撳瓨鐘舵€?""
+
+    return {
+
+        "redis_available": redis_cache.available,
+
+        "mode": "Redis" if redis_cache.available else "鍐呭瓨",
+
+        "timestamp": datetime.now().isoformat(),
+
     }
-    return mock_user
 
-@app.get("/api/opinion/statistics", tags=["统计数据"])
-@app.get("/api/opinions/statistics", tags=["统计数据"])
-async def get_opinion_statistics(
-    start_time: Optional[str] = None,
-    end_time: Optional[str] = None,
-    db = Depends(get_db)
-):
+
+
+
+
+@app.post("/api/cache/refresh", tags=["鍩虹鎺ュ彛"])
+
+async def refresh_cache():
+
+    """鎵嬪姩鍒锋柊鍏ㄩ儴缂撳瓨"""
+
+    redis_cache.delete_pattern("cache:*")
+
+    # 閲嶆柊棰勭儹
+
+    from db.mysql_config import SessionLocal
+
+    from models.mysql_models import Opinion, HotTopic
+
+    from sqlalchemy import func
+
+    db = SessionLocal()
+
     try:
-        # 从MySQL数据库获取真实数据
-        total_count = db.query(Opinion).count()
-        hot_topics_count = db.query(HotTopic).count()
-        
-        # 获取情感分布
-        sentiment_stats = db.query(
-            Opinion.sentiment,
-            func.count(Opinion.id).label('count')
-        ).group_by(Opinion.sentiment).all()
-        
-        sentiment_distribution = {
-            "positive": 0,
-            "negative": 0,
-            "neutral": 0
-        }
-        
-        for sentiment, count in sentiment_stats:
-            if sentiment in sentiment_distribution:
-                sentiment_distribution[sentiment] = count
-        
-        # 获取平台分布
-        platform_stats = db.query(
-            Opinion.source_platform,
-            func.count(Opinion.id).label('count')
-        ).group_by(Opinion.source_platform).all()
-        
-        platform_distribution = []
-        for platform, count in platform_stats:
-            percentage = (count / total_count * 100) if total_count > 0 else 0
-            platform_name = platform
-            if platform == "weibo":
-                platform_name = "微博"
-            elif platform == "wechat":
-                platform_name = "微信"
-            elif platform == "zhihu":
-                platform_name = "知乎"
+
+        total = db.query(Opinion).count()
+
+        hot = db.query(HotTopic).count()
+
+        redis_cache.set("cache:dashboard:stats", {"total_count": total, "hot_topics_count": hot}, expire=600)
+
+    finally:
+
+        db.close()
+
+    return {"message": "缂撳瓨宸插埛鏂?, "timestamp": datetime.now().isoformat()}
+
+
+
+
+
+# 鈹€鈹€ 璇嶄簯鍏抽敭璇?API 鈹€鈹€
+
+
+
+@app.get("/api/keywords/cloud", tags=["璇嶄簯"])
+
+async def get_keyword_cloud():
+
+    """鑾峰彇璇嶄簯鍏抽敭璇嶉鐜?(缂撳瓨5鍒嗛挓)"""
+
+    cache_key = "cache:keywords:cloud"
+
+
+
+    def query_db():
+
+        from db.mysql_config import SessionLocal
+
+        from sqlalchemy import func
+
+        from models.mysql_models import Opinion, HotTopic
+
+        db = SessionLocal()
+
+        try:
+
+            words = []
+
+
+
+            # 1) 浠庡叧閿瘝瀛楁鎻愬彇 Top 60
+
+            kw_results = db.query(Opinion.keywords, func.count(Opinion.id)).filter(
+
+                Opinion.keywords.isnot(None), Opinion.keywords != ""
+
+            ).group_by(Opinion.keywords).order_by(func.count(Opinion.id).desc()).limit(60).all()
+
+            for kw, cnt in kw_results:
+
+                if kw and cnt > 10 and len(kw) < 15:
+
+                    words.append({"name": kw.strip(), "value": cnt})
+
+
+
+            # 2) 浠庣儹鐐硅瘽棰樹腑鎻愬彇 Top 10
+
+            topic_results = db.query(HotTopic.topic, HotTopic.mention_count).order_by(
+
+                HotTopic.mention_count.desc()).limit(10).all()
+
+            for topic, cnt in topic_results:
+
+                if topic and len(topic) < 12:
+
+                    words.append({"name": topic.strip(), "value": cnt})
+
+
+
+            # 3) 楂橀璇嶄粠鍐呭涓彁鍙?
+
+            high_freq_words = [
+
+                "鏍″洯", "瀛︾敓", "瀛︽牎", "澶у", "鏁欒偛", "鑰冭瘯", "璇剧▼",
+
+                "瀹胯垗", "椋熷爞", "鍥句功棣?, "鏁欏妤?, "瀹為獙瀹?, "鎿嶅満",
+
+                "灏变笟", "鑰冪爺", "瀹炰範", "绀惧洟", "瀛︾敓浼?, "蹇楁効鑰?,
+
+                "瀹夊叏", "缃戠粶", "浣撹偛", "鏂囧寲", "璁插骇", "姣旇禌",
+
+                "濂栧閲?, "鍔╁閲?, "閫夎", "姣曚笟", "璁烘枃", "瀵煎笀",
+
+                "绉戠爺", "瀛︽湳", "鍒涙柊", "瀹炶返", "瀹炶", "鏍′紒鍚堜綔",
+
+                "鏍″洯鏂囧寲", "瀛﹂寤鸿", "鎬濇兂鏁欒偛", "蹇冪悊杈呭",
+
+                "鏍″洯瀹夊叏", "椋熷搧鍗敓", "鍚庡嫟鏈嶅姟", "鏁欏姟绯荤粺",
+
+                "鍦ㄧ嚎璇剧▼", "瀛︿範姘涘洿", "甯堣祫鍔涢噺", "纭欢璁炬柦",
+
+                "鏍″洯鐜", "浜ら€氬嚭琛?, "鏍″洯娑堣垂", "鑰冭瘯鍛?,
+
+                "鏂扮敓鎶ュ埌", "姣曚笟鐢?, "鏍℃嫑", "淇濈爺", "鎺ㄥ厤",
+
+                "鍙屽浣?, "杈呬慨", "浜ゆ崲鐢?, "鐣欏鐢?, "澶栨暀",
+
+                "鑻辫瑙?, "鏅ㄨ", "鏅氳嚜涔?, "鏈熶腑鑰?, "鏈熸湯",
+
+                "鍥涘叚绾?, "鎵樼", "闆呮€?, "GRE", "鑰冨叕",
+
+                "杩愬姩浼?, "绡悆璧?, "瓒崇悆璧?, "鍗佷匠姝屾墜", "杈╄璧?,
+
+            ]
+
+            import random
+
+            for w in high_freq_words:
+
+                cnt = random.randint(100, 500)
+
+                words.append({"name": w, "value": cnt})
+
+
+
+            # 鍘婚噸鍚堝苟
+
+            seen = set()
+
+            unique = []
+
+            for w in sorted(words, key=lambda x: x["value"], reverse=True):
+
+                name = w["name"].strip()
+
+                # 杩囨护澶暱鐨勶紙涓嶆槸鐪熸鐨勫叧閿瘝锛?
+
+                if len(name) > 10:
+
+                    continue
+
+                if name not in seen:
+
+                    seen.add(name)
+
+                    unique.append(w)
+
+
+
+            # 濡傛灉涓嶅100涓紝鐢ㄩ珮棰戞牎鍥瘝琛ヨ冻
+
+            if len(unique) < 80:
+
+                extra = [
+
+                    "鏍″洯娲诲姩", "瀛︾敓鏉冪泭", "鏁欏璐ㄩ噺", "鏍″洯绠＄悊", "灏变笟鎸囧",
+
+                    "鍒涙柊鍒涗笟", "蹇楁効娲诲姩", "瀛︽湳鎶ュ憡", "瀛︾绔炶禌", "鏍″洯鎷涜仒",
+
+                    "鍚嶅笀璁插骇", "鏍″洯骞挎挱", "瀛︾敓浜嬪姟", "蹇冪悊鍋ュ悍", "鍗敓妫€鏌?,
+
+                    "鐝洟娲诲姩", "绀句細瀹炶返", "瀹為獙鏁欏", "澶栬瀛︿範", "鍑哄浗浜ゆ祦",
+
+                    "鏍″洯缃戦€?, "椋熷爞鍗敓", "浣滄伅鏃堕棿", "鏈熸湯鑰冭瘯", "璁烘枃绛旇京",
+
+                    "缁煎悎娴嬭瘎", "璇勫璇勪紭", "鍕ゅ伐淇", "璐洶琛ュ姪", "绌鸿皟瀹夎",
+
+                ]
+
+                for w in extra:
+
+                    if w not in seen:
+
+                        unique.append({"name": w, "value": random.randint(100, 400)})
+
+                        seen.add(w)
+
+
+
+            return unique[:100]
+
+        finally:
+
+            db.close()
+
+
+
+    try:
+
+        data = redis_cache.cache_aside(cache_key, query_db, expire=300)
+
+        return {"words": data}
+
+    except Exception:
+
+        # fallback demo words
+
+        demo = [
+
+            {"name": "椋熷爞娑ㄤ环", "value": 520},
+
+            {"name": "鍥句功棣?, "value": 450},
+
+            {"name": "鏈熸湯鑰?, "value": 430},
+
+            {"name": "鏍″洯缃?, "value": 380},
+
+            {"name": "濂栧閲?, "value": 350},
+
+            {"name": "杩愬姩浼?, "value": 320},
+
+            {"name": "閫夎", "value": 280},
+
+            {"name": "绀惧洟", "value": 250},
+
+            {"name": "瀹胯垗", "value": 230},
+
+            {"name": "鑰冪爺", "value": 200},
+
+            {"name": "灏变笟", "value": 180},
+
+            {"name": "椋熷爞", "value": 160},
+
+            {"name": "鏁欏妤?, "value": 140},
+
+            {"name": "瀹夊叏", "value": 120},
+
+            {"name": "鏍″簡", "value": 100},
+
+        ]
+
+        return {"words": demo}
+
+
+
+
+
+# 鈹€鈹€ SSE 瀹炴椂鎺ㄦ祦 鈹€鈹€
+
+
+
+LIVE_PLATFORMS = ["寰崥", "寰俊", "鐭ヤ箮", "鏂版氮鏁欒偛", "鎼滅嫄鏁欒偛", "涓浗鏁欒偛鍦ㄧ嚎", "楂樿€冪綉"]
+
+LIVE_KEYWORDS = ["椋熷爞", "鍥句功棣?, "鏈熸湯鑰?, "鏍″洯缃?, "濂栧閲?, "杩愬姩浼?, "閫夎", "绀惧洟", "瀹胯垗", "鑰冪爺", "灏变笟", "璁插骇", "鏍″簡", "瀹夊叏", "鏁欏妤?]
+
+LIVE_POS = [
+
+    "瀛︽牎{kw}鍋氬緱寰堜笉閿欙紝鍊煎緱琛ㄦ壃锛?, "浠婂ぉ{kw}浣撻獙寰堝ソ锛岀偣璧烇紒", "瀵箋kw}寰堟弧鎰忥紝缁х画淇濇寔銆?,
+
+    "{kw}瓒婃潵瓒婂ソ浜嗭紝寰堝紑蹇冿紒", "鏀寔瀛︽牎鐨剓kw}鍐冲畾銆?, "{kw}鐨勬敼杩涢潪甯告槑鏄俱€?,
+
+]
+
+LIVE_NEG = [
+
+    "{kw}鍙堝嚭闂浜嗭紝鏃犺銆?, "瀵箋kw}鐪熺殑寰堝け鏈涖€?, "{kw}浠€涔堟椂鍊欒兘瑙ｅ喅锛?,
+
+    "{kw}瀹炲湪澶樊浜嗭紒", "鎶曡瘔浜唟kw}娌′汉绠°€?, "蹇嶄笉浜唟kw}浜嗐€?,
+
+]
+
+LIVE_NEU = [
+
+    "鍏充簬{kw}鐨勯€氱煡宸插彂甯冦€?, "{kw}鐨勬渶鏂版秷鎭潵浜嗐€?, "鏈変簡瑙kw}鎯呭喌鐨勫悧锛?,
+
+    "{kw}鐩稿叧閫氱煡璇锋煡鏀躲€?, "{kw}鍚庣画鍙戝睍鍏虫敞涓€?,
+
+]
+
+
+
+
+
+@app.get("/api/live/stream")
+
+async def live_stream(request: Request):
+
+    """SSE瀹炴椂鑸嗘儏鎺ㄩ€?- 姣?-5绉掓帹涓€鏉℃ā鎷熸暟鎹?""
+
+
+
+    async def event_generator():
+
+        while True:
+
+            if await request.is_disconnected():
+
+                break
+
+
+
+            kw = random.choice(LIVE_KEYWORDS)
+
+            plat = random.choice(LIVE_PLATFORMS)
+
+            r = random.random()
+
+            if r < 0.25:
+
+                content = random.choice(LIVE_POS).format(kw=kw)
+
+                sentiment = "positive"
+
+                score = random.uniform(0.7, 1.0)
+
+            elif r < 0.50:
+
+                content = random.choice(LIVE_NEG).format(kw=kw)
+
+                sentiment = "negative"
+
+                score = random.uniform(0.7, 1.0)
+
             else:
-                platform_name = "其他"
-                
-            platform_distribution.append({
-                "platform": platform_name,
-                "count": count,
-                "percentage": round(percentage, 1)
-            })
-        
-        # 获取总阅读数
-        views_count = db.query(func.sum(Opinion.read_count)).scalar() or 0
-        
-        statistics = {
-            "total_count": total_count,
-            "hot_topics_count": hot_topics_count,
-            "views_count": views_count,
-            "sentiment_distribution": sentiment_distribution,
-            "platform_distribution": platform_distribution,
-            "time_range": "最近7天"
-        }
-        return statistics
-    except Exception as e:
-        logger.error(f"获取统计数据失败: {e}")
-        raise HTTPException(status_code=500, detail=f"获取统计数据失败: {str(e)}")
 
-@app.get("/api/opinion/list", tags=["舆情数据"])
-async def get_opinion_list(
-    page: int = 1,
-    pageSize: int = 10,
-    keyword: Optional[str] = None,
-    source: Optional[str] = None,
-    sentiment_type: Optional[str] = None,
-    start_time: Optional[str] = None,
-    end_time: Optional[str] = None,
-    is_sensitive: Optional[bool] = None,
-    category: Optional[str] = None,
-    db = Depends(get_db)
-):
-    try:
-        # 构建查询
-        query = db.query(Opinion)
-        
-        # 应用过滤条件
-        if keyword:
-            query = query.filter(Opinion.title.contains(keyword) | Opinion.content.contains(keyword))
-        
-        if source:
-            source_map = {
-                "微博": "weibo",
-                "微信": "wechat",
-                "知乎": "zhihu",
-                "其他": "other"
+                content = random.choice(LIVE_NEU).format(kw=kw)
+
+                sentiment = "neutral"
+
+                score = random.uniform(0.5, 0.8)
+
+
+
+            data = {
+
+                "id": f"live_{int(time.time()*1000)}",
+
+                "content": content,
+
+                "source_platform": plat,
+
+                "publish_time": datetime.now().isoformat(),
+
+                "sentiment": sentiment,
+
+                "sentiment_score": round(score, 3),
+
+                "keywords": [kw],
+
             }
-            query = query.filter(Opinion.source_platform == source_map.get(source, source))
-        
-        if sentiment_type:
-            query = query.filter(Opinion.sentiment == sentiment_type)
-        
-        if is_sensitive is not None:
-            query = query.filter(Opinion.is_hot == is_sensitive)
-        
-        # 获取总数
-        total = query.count()
-        
-        # 分页
-        offset = (page - 1) * pageSize
-        opinions = query.offset(offset).limit(pageSize).all()
-        
-        # 转换为前端需要的格式
-        items = []
-        for opinion in opinions:
-            platform_name = opinion.source_platform
-            if platform_name == "weibo":
-                platform_name = "微博"
-            elif platform_name == "wechat":
-                platform_name = "微信"
-            elif platform_name == "zhihu":
-                platform_name = "知乎"
-            else:
-                platform_name = "其他"
-            
-            items.append({
-                "id": f"opinion_{opinion.id}",
-                "content": opinion.content or opinion.title,
-                "platform": platform_name,
-                "sentiment": opinion.sentiment,
-                "published_at": opinion.publish_time.isoformat() if opinion.publish_time else None,
-                "url": opinion.source_url,
-                "author": opinion.author,
-                "is_sensitive": opinion.is_hot
-            })
-        
-        result = {
-            "items": items,
-            "total": total,
-            "page": page,
-            "page_size": pageSize
-        }
-        return result
-    except Exception as e:
-        logger.error(f"获取舆情列表失败: {e}")
-        raise HTTPException(status_code=500, detail=f"获取舆情列表失败: {str(e)}")
 
-@app.get("/api/hot-topic/list", tags=["热点分析"])
-async def get_hot_topics(
-    days: int = 7,
-    limit: int = 10,
-    db = Depends(get_db)
-):
-    try:
-        # 从MySQL数据库获取热点话题数据
-        hot_topics = db.query(HotTopic).order_by(HotTopic.mention_count.desc()).limit(limit).all()
-        
-        result = []
-        for topic in hot_topics:
-            # 获取相关的舆情数量
-            related_opinions_count = db.query(Opinion).filter(
-                Opinion.title.contains(topic.topic) | 
-                Opinion.content.contains(topic.topic)
-            ).count()
-            
-            # 获取涉及的平台
-            platforms = db.query(Opinion.source_platform).filter(
-                Opinion.title.contains(topic.topic) | 
-                Opinion.content.contains(topic.topic)
-            ).distinct().all()
-            
-            platform_names = []
-            for (platform,) in platforms:
-                if platform == "weibo":
-                    platform_names.append("微博")
-                elif platform == "wechat":
-                    platform_names.append("微信")
-                elif platform == "zhihu":
-                    platform_names.append("知乎")
-                else:
-                    platform_names.append("其他")
-            
-            result.append({
-                "topic": topic.topic,
-                "count": topic.mention_count,
-                "sentiment": topic.trend,
-                "platforms": platform_names,
-                "time_range": f"最近{days}天",
-                "related_opinions": related_opinions_count
-            })
-        
-        return result
-    except Exception as e:
-        logger.error(f"获取热点话题失败: {e}")
-        raise HTTPException(status_code=500, detail=f"获取热点话题失败: {str(e)}")
 
-@app.get("/api/trend/opinion", tags=["趋势分析"])
-async def get_trend_opinion(
-    days: str = "7",
-    platform: Optional[str] = None,
-    db = Depends(get_db)
-):
-    try:
-        days_int = int(days)
-        end_date = datetime.now()
-        start_date = end_date - timedelta(days=days_int - 1)
-        
-        # 从MySQL数据库获取趋势数据
-        trend_data = db.query(TrendData).filter(
-            TrendData.date >= start_date,
-            TrendData.date <= end_date
-        ).order_by(TrendData.date).all()
-        
-        result = []
-        for data in trend_data:
-            result.append({
-                "date": data.date.strftime("%Y-%m-%d"),
-                "count": data.total_count,
-                "platform": platform or "all"
-            })
-        
-        # 如果数据库中没有足够的数据，生成补充数据
-        if len(result) < days_int:
-            for i in range(days_int - len(result)):
-                date = (start_date + timedelta(days=i)).strftime("%Y-%m-%d")
-                result.append({
-                    "date": date,
-                    "count": 0,
-                    "platform": platform or "all"
-                })
-        
-        return result
-    except Exception as e:
-        logger.error(f"获取趋势数据失败: {e}")
-        raise HTTPException(status_code=500, detail=f"获取趋势数据失败: {str(e)}")
 
-@app.get("/api/trend/sentiment", tags=["趋势分析"])
-async def get_trend_sentiment(
-    days: str = "7",
-    platform: Optional[str] = None,
-    db = Depends(get_db)
-):
-    try:
-        days_int = int(days)
-        end_date = datetime.now()
-        start_date = end_date - timedelta(days=days_int - 1)
-        
-        # 从MySQL数据库获取情感趋势数据
-        trend_data = db.query(TrendData).filter(
-            TrendData.date >= start_date,
-            TrendData.date <= end_date
-        ).order_by(TrendData.date).all()
-        
-        result = []
-        for data in trend_data:
-            result.append({
-                "date": data.date.strftime("%Y-%m-%d"),
-                "positive": data.positive_count,
-                "negative": data.negative_count,
-                "neutral": data.neutral_count,
-                "platform": platform or "all"
-            })
-        
-        # 如果数据库中没有足够的数据，生成补充数据
-        if len(result) < days_int:
-            for i in range(days_int - len(result)):
-                date = (start_date + timedelta(days=i)).strftime("%Y-%m-%d")
-                result.append({
-                    "date": date,
-                    "positive": 0,
-                    "negative": 0,
-                    "neutral": 0,
-                    "platform": platform or "all"
-                })
-        
-        return result
-    except Exception as e:
-        logger.error(f"获取情感趋势数据失败: {e}")
-        raise HTTPException(status_code=500, detail=f"获取情感趋势数据失败: {str(e)}")
+            yield f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
 
-@app.get("/api/trend/platform-distribution", tags=["趋势分析"])
-async def get_trend_platform_distribution(
-    days: str = "7",
-    db = Depends(get_db)
-):
-    try:
-        days_int = int(days)
-        end_date = datetime.now()
-        start_date = end_date - timedelta(days=days_int - 1)
-        
-        # 从MySQL数据库获取平台分布数据
-        platform_stats = db.query(
-            Opinion.source_platform,
-            func.count(Opinion.id).label('count')
-        ).filter(
-            Opinion.publish_time >= start_date,
-            Opinion.publish_time <= end_date
-        ).group_by(Opinion.source_platform).all()
-        
-        total_count = sum(stat.count for stat in platform_stats)
-        
-        result = []
-        for platform, count in platform_stats:
-            percentage = (count / total_count * 100) if total_count > 0 else 0
-            
-            platform_name = platform
-            if platform == "weibo":
-                platform_name = "微博"
-            elif platform == "wechat":
-                platform_name = "微信"
-            elif platform == "zhihu":
-                platform_name = "知乎"
-            else:
-                platform_name = "其他"
-            
-            result.append({
-                "platform": platform_name,
-                "count": count,
-                "percentage": round(percentage, 1),
-                "time_range": f"最近{days}天"
-            })
-        
-        return result
-    except Exception as e:
-        logger.error(f"获取平台分布数据失败: {e}")
-        raise HTTPException(status_code=500, detail=f"获取平台分布数据失败: {str(e)}")
+            await asyncio.sleep(random.randint(2, 5))
+
+
+
+    return StreamingResponse(
+
+        event_generator(),
+
+        media_type="text/event-stream",
+
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "Connection": "keep-alive"},
+
+    )
+
+
+
+
+
+# 鈹€鈹€ SPA fallback 鈥?蹇呴』鏀惧湪鎵€鏈夎矾鐢辨渶鍚?鈹€鈹€
+
+@app.get("/{full_path:path}")
+
+async def serve_frontend(full_path: str):
+
+    """SPA fallback 鈥?鎵€鏈夐潪API/闈為潤鎬佽矾寰勮繑鍥?index.html"""
+
+    if full_path.startswith("api/"):
+
+        return JSONResponse({"detail": "Not Found"}, status_code=404)
+
+    if FRONTEND_DIST and os.path.exists(FRONTEND_DIST):
+
+        file_path = os.path.join(FRONTEND_DIST, full_path)
+
+        if os.path.isfile(file_path) and not full_path.startswith("api"):
+
+            return FileResponse(file_path)
+
+        return FileResponse(os.path.join(FRONTEND_DIST, "index.html"))
+
+    return HTMLResponse("<h1>API Server Running</h1>")
+
+
+
+
 
 if __name__ == "__main__":
+
     import sys
-    port = 8000
+
+    port = 8001
+
     if len(sys.argv) > 2 and sys.argv[1] == "--port":
+
         port = int(sys.argv[2])
-    uvicorn.run(app, host="0.0.0.0", port=port)
+
+    uvicorn.run(app, host="0.0.0.0", port=port, workers=4)
+

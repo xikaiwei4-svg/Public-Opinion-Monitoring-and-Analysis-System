@@ -95,3 +95,14 @@ markdown_to_docx.py
 # Backup files
 *.fixed
 *.bak
+
+# Docker 数据持久化（排除实际数据文件，保留 .gitkeep）
+data/mysql/*
+!data/mysql/.gitkeep
+data/redis/*
+!data/redis/.gitkeep
+data/models/*
+!data/models/.gitkeep
+
+# redis.conf 用于 Docker，可以提交
+!redis.conf

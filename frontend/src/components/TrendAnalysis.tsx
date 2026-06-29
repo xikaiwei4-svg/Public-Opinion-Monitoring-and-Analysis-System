@@ -54,7 +54,7 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
   enableFilter = true
 }) => {
   const dispatch = useDispatch()
-  const [viewMode, setViewMode] = useState<'table' | 'chart'>('table')
+  const [viewMode, setViewMode] = useState<'table' | 'chart'>('chart')
   const [filterModalVisible, setFilterModalVisible] = useState(false)
   const [dateRange, setDateRange] = useState<[string, string] | null>(null)
   const [searchKeyword, setSearchKeyword] = useState('')
@@ -333,8 +333,9 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
   try {
     return (
       <div style={{ width: '100%' }}>
-        <Card 
-          title="趋势分析"
+        <Card
+          className="content-card"
+          title={<span style={{ fontWeight: 600 }}>📈 趋势分析</span>}
           extra={
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
               {/* 视图切换 */}
@@ -429,29 +430,30 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
           {/* 统计卡片 */}
           <Row gutter={16} style={{ marginBottom: '24px' }}>
             <Col xs={24} sm={12} md={6}>
-              <Card size="small" title="总舆情数">
-                <Text strong style={{ fontSize: '24px', color: '#1890ff' }}>{statistics.totalCount}</Text>
+              <Card size="small" style={{ borderRadius: 10 }}>
+                <div style={{ color: '#999', fontSize: 13, marginBottom: 4 }}>总舆情数</div>
+                <div style={{ fontSize: 24, fontWeight: 700, background: 'linear-gradient(135deg, #667eea, #764ba2)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{statistics.totalCount}</div>
               </Card>
             </Col>
             <Col xs={24} sm={12} md={6}>
-              <Card size="small" title="日均舆情数">
-                <Text strong style={{ fontSize: '24px', color: '#52c41a' }}>{statistics.avgDailyCount}</Text>
+              <Card size="small" style={{ borderRadius: 10 }}>
+                <div style={{ color: '#999', fontSize: 13, marginBottom: 4 }}>日均舆情数</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: '#52c41a' }}>{statistics.avgDailyCount}</div>
               </Card>
             </Col>
             <Col xs={24} sm={12} md={6}>
-              <Card size="small" title="最高日舆情数">
-                <Text strong style={{ fontSize: '24px', color: '#faad14' }}>{statistics.maxCount}</Text>
+              <Card size="small" style={{ borderRadius: 10 }}>
+                <div style={{ color: '#999', fontSize: 13, marginBottom: 4 }}>最高日舆情数</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: '#faad14' }}>{statistics.maxCount}</div>
               </Card>
             </Col>
             <Col xs={24} sm={12} md={6}>
-              <Card size="small" title="趋势变化">
-                <Text 
-                  strong 
-                  style={{ fontSize: '24px', color: trendChange.change >= 0 ? '#52c41a' : '#f5222d' }}
-                >
+              <Card size="small" style={{ borderRadius: 10 }}>
+                <div style={{ color: '#999', fontSize: 13, marginBottom: 4 }}>趋势变化</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: trendChange.change >= 0 ? '#52c41a' : '#ff4d4f' }}>
                   {trendChange.percentage.toFixed(1)}%
-                  {trendChange.change >= 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
-                </Text>
+                  {trendChange.change >= 0 ? <ArrowUpOutlined style={{ fontSize: 18 }} /> : <ArrowDownOutlined style={{ fontSize: 18 }} />}
+                </div>
               </Card>
             </Col>
           </Row>
@@ -460,9 +462,9 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
             <>
               <Row gutter={16} style={{ marginBottom: '24px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', width: '100%' }}>
-                  <Title level={5}>舆情数量趋势</Title>
+                  <Title level={5} style={{ color: '#1a1a2e', fontWeight: 600 }}>舆情数量趋势</Title>
                 </div>
-                
+
                 <Col span={24}>
                   <DataTable
                     columns={opinionTrendColumns}
@@ -475,7 +477,7 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
 
               <Row gutter={16} style={{ marginBottom: '24px' }}>
                 <Col span={24}>
-                  <Title level={5}>情感分布趋势</Title>
+                  <Title level={5} style={{ color: '#1a1a2e', fontWeight: 600 }}>情感分布趋势</Title>
                   <DataTable
                     columns={sentimentTrendColumns}
                     dataSource={sentimentData}
@@ -484,10 +486,10 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
                   />
                 </Col>
               </Row>
-              
+
               <Row gutter={16}>
                 <Col span={24}>
-                  <Title level={5}>平台分布</Title>
+                  <Title level={5} style={{ color: '#1a1a2e', fontWeight: 600 }}>平台分布</Title>
                   <DataTable
                     columns={platformDistributionColumns}
                     dataSource={platformDistData}
@@ -510,7 +512,7 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = React.memo(({
                   <ChartComponent type="bar" data={sentimentData} height={300} />
                 </Col>
               </Row>
-              
+
               <Row gutter={16}>
                 <Col span={24}>
                   <ChartComponent type="pie" data={platformDistData} height={300} />

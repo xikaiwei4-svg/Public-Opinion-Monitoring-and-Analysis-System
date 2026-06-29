@@ -1,45 +1,69 @@
-import React from 'react'
+import React, { Suspense, lazy } from 'react'
 import { Routes, Route } from 'react-router-dom'
+import { ConfigProvider, Spin } from 'antd'
+import zhCN from 'antd/locale/zh_CN'
 import Layout from './components/Layout'
 
-// 所有页面都同步加载
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
-import Dashboard from './pages/Dashboard'
-import OpinionListPage from './pages/OpinionListPage'
-import HotTopicListPage from './pages/HotTopicListPage'
-import TrendDataPage from './pages/TrendDataPage'
-import TrendAnalysisPage from './pages/TrendAnalysisPage'
-import UserManagementPage from './pages/UserManagementPage'
-import DatabaseManagePage from './pages/DatabaseManagePage'
 import NotFound from './pages/NotFound'
+import SettingsPage from './pages/SettingsPage'
 
-// 对于尚未创建专门页面的路由，创建一个简单的临时组件
-const TemporaryComponent = () => (
-  <div style={{ padding: '20px', textAlign: 'center', color: '#999' }}>
-    <h2>页面开发中</h2>
-    <p>该功能正在开发中，敬请期待...</p>
+// 懒加载重量级页面
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const OpinionListPage = lazy(() => import('./pages/OpinionListPage'))
+const HotTopicListPage = lazy(() => import('./pages/HotTopicListPage'))
+const TrendAnalysisPage = lazy(() => import('./pages/TrendAnalysisPage'))
+const UserManagementPage = lazy(() => import('./pages/UserManagementPage'))
+const DatabaseManagePage = lazy(() => import('./pages/DatabaseManagePage'))
+
+const PageLoader = () => (
+  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
+    <Spin size="large" tip="加载中..." />
   </div>
-);
+)
 
-const App: React.FC = () => {
-  return (
+const App: React.FC = () => (
+  <ConfigProvider
+    locale={zhCN}
+    theme={{
+      token: {
+        colorPrimary: '#6366f1',
+        colorInfo: '#6366f1',
+        borderRadius: 10,
+        colorBgLayout: '#f8fafc',
+        colorBgContainer: '#ffffff',
+        colorBgElevated: '#ffffff',
+        colorBorderSecondary: '#e8ecf3',
+        boxShadow: '0 2px 12px rgba(0, 0, 0, 0.04)',
+        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif",
+      },
+      components: {
+        Menu: { itemBorderRadius: 10, itemMarginInline: 8, subMenuItemBg: 'transparent' },
+        Card: { borderRadiusLG: 16, paddingLG: 20 },
+        Button: { borderRadius: 8, controlHeight: 36 },
+        Table: { borderRadius: 12, headerBg: '#f8fafc' },
+        Input: { borderRadius: 8, controlHeight: 36 },
+        Select: { borderRadius: 8, controlHeight: 36 },
+        Spin: { dotSize: 20 },
+      },
+    }}
+  >
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/" element={<Layout />}>
-        <Route index element={<Dashboard />} />
-        <Route path="opinion/list" element={<OpinionListPage />} />
-        <Route path="hot-topic/list" element={<HotTopicListPage />} />
-        <Route path="test/trend-data" element={<TrendDataPage />} />
-        <Route path="trend-analysis" element={<TrendAnalysisPage />} />
-        <Route path="user/manage" element={<UserManagementPage />} />
-        <Route path="database/manage" element={<DatabaseManagePage />} />
-        <Route path="settings" element={<TemporaryComponent />} />
+        <Route index element={<Suspense fallback={<PageLoader />}><Dashboard /></Suspense>} />
+        <Route path="opinion/list" element={<Suspense fallback={<PageLoader />}><OpinionListPage /></Suspense>} />
+        <Route path="hot-topic/list" element={<Suspense fallback={<PageLoader />}><HotTopicListPage /></Suspense>} />
+        <Route path="trend-analysis" element={<Suspense fallback={<PageLoader />}><TrendAnalysisPage /></Suspense>} />
+        <Route path="user/manage" element={<Suspense fallback={<PageLoader />}><UserManagementPage /></Suspense>} />
+        <Route path="database/manage" element={<Suspense fallback={<PageLoader />}><DatabaseManagePage /></Suspense>} />
+        <Route path="settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
-  )
-}
+  </ConfigProvider>
+)
 
 export default App

@@ -1,220 +1,121 @@
 import React, { useState, useEffect } from 'react'
-import { Typography, Table, Card, Select, Input, Button, Tag, Space, Row, Col, Statistic, Divider, message, Spin } from 'antd'
-import { SearchOutlined, DownloadOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, AlertOutlined, ReloadOutlined } from '@ant-design/icons'
-import { useNavigate } from 'react-router-dom'
-import { getOpinions } from '../api/databaseApi'
+import { Typography, Table, Card, Select, Input, Button, Tag, Space, Row, Col, Statistic, message, Spin, Modal, Descriptions } from 'antd'
+import { SearchOutlined, DownloadOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, ReloadOutlined } from '@ant-design/icons'
+import { handleApiRequest } from '../utils/apiClient'
+import { mockHotTopics } from '../store/features/hotTopicSlice'
 
 const { Title, Text } = Typography
 const { Search } = Input
 
-const getCurrentDate = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const hours = String(now.getHours()).padStart(2, '0');
-  const minutes = String(now.getMinutes()).padStart(2, '0');
-  return `${year}-${month}-${day} ${hours}:${minutes}`;
-};
+const PLATFORM_MAP: Record<string, string> = {
+  weibo: '微博', wechat: '微信', zhihu: '知乎',
+  sina: '新浪', eol: '中国教育在线', jyb: '教育部',
+  youth: '中国青年网', sohu: '搜狐', '163': '网易',
+}
 
-const getRecentDate = (daysAgo: number) => {
-  const date = new Date();
-  date.setDate(date.getDate() - daysAgo);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${year}-${month}-${day} ${hours}:${minutes}`;
-};
-
-// 从舆情数据生成热点话题
-const generateHotTopicsFromOpinions = (opinions: any[]): any[] => {
-  // 按平台分组统计
-  const platformGroups: Record<string, any[]> = {};
-  opinions.forEach(opinion => {
-    const platform = opinion.source_platform || '其他';
-    if (!platformGroups[platform]) {
-      platformGroups[platform] = [];
-    }
-    platformGroups[platform].push(opinion);
-  });
-  
-  // 生成热点话题
-  const topics: any[] = [];
-  let id = 1;
-  
-  Object.entries(platformGroups).forEach(([platform, items]) => {
-    // 按热度排序，取前几条
-    const sortedItems = items.sort((a, b) => (b.hot_score || 0) - (a.hot_score || 0));
-    
-    sortedItems.slice(0, 3).forEach((item, index) => {
-      const sentimentScore = item.sentiment_score || 0.5;
-      let riskLevel = 'low';
-      if (sentimentScore < 0.3) riskLevel = 'high';
-      else if (sentimentScore < 0.5) riskLevel = 'medium';
-      
-      topics.push({
-        id: String(id++),
-        title: item.title || item.content?.substring(0, 30) || '无标题',
-        description: item.content?.substring(0, 100) || '无描述',
-        heat: Math.round((item.hot_score || 0.5) * 10000) + Math.floor(Math.random() * 1000),
-        trend: Math.random() > 0.5 ? 'up' : (Math.random() > 0.5 ? 'down' : 'stable'),
-        sourceCount: Math.floor(Math.random() * 200) + 50,
-        sentimentScore: sentimentScore,
-        firstAppearance: item.publish_time ? item.publish_time.replace('T', ' ').substring(0, 16) : getRecentDate(Math.floor(Math.random() * 7)),
-        latestUpdate: getCurrentDate(),
-        category: getCategoryFromTitle(item.title || item.content || ''),
-        riskLevel: riskLevel,
-        source_url: item.source_url
-      });
-    });
-  });
-  
-  return topics.sort((a, b) => b.heat - a.heat);
-};
-
-// 根据标题判断分类
-const getCategoryFromTitle = (title: string): string => {
-  const keywords: Record<string, string[]> = {
-    '教育政策': ['教育', '政策', '改革', '考试', '招生', '学费'],
-    '校园生活': ['校园', '学生', '食堂', '宿舍', '图书馆', '活动'],
-    '社会热点': ['社会', '热点', '新闻', '事件', '讨论'],
-    '科技教育': ['科技', 'AI', '人工智能', '数字化', '在线', '网络'],
-    '国际交流': ['国际', '留学', '海外', '合作', '交流']
-  };
-  
-  for (const [category, words] of Object.entries(keywords)) {
-    if (words.some(word => title.includes(word))) {
-      return category;
-    }
-  }
-  return '其他';
-};
+const SENTIMENT_MAP: Record<string, { color: string; text: string }> = {
+  positive: { color: 'success', text: '正面' },
+  negative: { color: 'error', text: '负面' },
+  neutral: { color: 'default', text: '中性' },
+  rising: { color: 'volcano', text: '上升' },
+  falling: { color: 'green', text: '下降' },
+  stable: { color: 'gold', text: '平稳' },
+}
 
 const HotTopicListPage: React.FC = () => {
-  const navigate = useNavigate()
   const [hotTopics, setHotTopics] = useState<any[]>([])
-  const [filteredTopics, setFilteredTopics] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
-  const [selectedCategory, setSelectedCategory] = useState<string>('all')
-  const [selectedRisk, setSelectedRisk] = useState<string>('all')
-  const [searchKeyword, setSearchKeyword] = useState<string>('')
+  const [searchKeyword, setSearchKeyword] = useState('')
+  const [pagination, setPagination] = useState({ page: 1, pageSize: 10, total: 0 })
 
-  // 加载舆情数据并生成热点话题
-  const loadHotTopics = async () => {
+  const loadHotTopics = async (page = 1, pageSize = 10) => {
     setLoading(true)
     try {
-      const opinions = await getOpinions(0, 100)
-      const topics = generateHotTopicsFromOpinions(opinions)
-      setHotTopics(topics)
-      setFilteredTopics(topics)
-      message.success(`成功加载 ${topics.length} 个热点话题`)
+      const data = await handleApiRequest<{
+        items: any[];
+        total: number;
+        page: number;
+        page_size: number;
+      }>({
+        method: 'GET',
+        url: '/api/hot-topic/list',
+        params: { page, pageSize },
+      })
+      if (data.items && data.items.length > 0) {
+        setHotTopics(data.items || [])
+        setPagination({ page: data.page || page, pageSize: data.page_size || pageSize, total: data.total || 0 })
+      } else {
+        // API返回空数据时使用mock数据（映射为API返回格式）
+        const mapped = mockHotTopics.map(t => ({
+          topic: t.title,
+          count: t.hot_value,
+          sentiment: t.trend_status,
+          platforms: t.platforms,
+          time_range: `${new Date(t.start_time).toLocaleDateString()} - ${new Date(t.end_time).toLocaleDateString()}`,
+          related_opinions: t.related_opinions_count,
+        }))
+        setHotTopics(mapped)
+        setPagination({ page: 1, pageSize, total: mapped.length })
+      }
     } catch (error) {
       console.error('加载热点话题失败:', error)
-      message.error('加载热点话题失败')
+      // API异常时使用mock数据
+      const mapped = mockHotTopics.map(t => ({
+        topic: t.title,
+        count: t.hot_value,
+        sentiment: t.trend_status,
+        platforms: t.platforms,
+        time_range: `${new Date(t.start_time).toLocaleDateString()} - ${new Date(t.end_time).toLocaleDateString()}`,
+        related_opinions: t.related_opinions_count,
+      }))
+      setHotTopics(mapped)
+      setPagination({ page: 1, pageSize, total: mapped.length })
     } finally {
       setLoading(false)
     }
   }
 
-  // 组件加载时获取数据
   useEffect(() => {
     loadHotTopics()
   }, [])
 
-  // 统计数据
   const stats = {
-    totalTopics: hotTopics.length,
-    highRisk: hotTopics.filter(topic => topic.riskLevel === 'high').length,
-    totalHeat: hotTopics.reduce((sum, topic) => sum + (topic.heat || 0), 0)
+    totalTopics: pagination.total,
+    totalHeat: hotTopics.reduce((sum, t: any) => sum + (t.count || 0), 0),
   }
 
-  // 过滤数据
-  useEffect(() => {
-    let result = [...hotTopics]
-    
-    // 分类过滤
-    if (selectedCategory !== 'all') {
-      result = result.filter(topic => topic.category === selectedCategory)
-    }
-    
-    // 风险等级过滤
-    if (selectedRisk !== 'all') {
-      result = result.filter(topic => topic.riskLevel === selectedRisk)
-    }
-    
-    // 关键词搜索
-    if (searchKeyword) {
-      const keyword = searchKeyword.toLowerCase()
-      result = result.filter(topic => 
-        topic.title.toLowerCase().includes(keyword) || 
-        topic.description.toLowerCase().includes(keyword)
-      )
-    }
-    
-    setFilteredTopics(result)
-  }, [hotTopics, selectedCategory, selectedRisk, searchKeyword])
+  const filteredTopics = searchKeyword
+    ? hotTopics.filter((t: any) => t.topic?.includes(searchKeyword))
+    : hotTopics
 
-  // 处理搜索
   const handleSearch = (value: string) => {
     setSearchKeyword(value)
   }
 
-  // 处理导出
+  const [detailVisible, setDetailVisible] = useState(false)
+  const [detailTopic, setDetailTopic] = useState<any>(null)
+
   const handleExport = () => {
-    message.success('热点话题数据已导出')
+    const csv = [['话题,提及次数,趋势,情感时间范围'].join(',')]
+    const rows = filteredTopics.map((t: any) => `"${t.topic}","${t.count}","${t.sentiment}","${t.time_range || ''}"`)
+    csv.push(...rows)
+    const blob = new Blob(['﻿' + csv.join('\n')], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a'); a.href = url
+    a.download = 'hot_topics.csv'; a.click(); URL.revokeObjectURL(url)
+    message.success('已导出')
   }
 
-  // 处理查看详情
   const handleViewDetail = (record: any) => {
-    if (record.source_url) {
-      window.open(record.source_url, '_blank')
-    } else {
-      message.info(`查看热点话题ID: ${record.id} 的详情`)
-    }
+    setDetailTopic(record)
+    setDetailVisible(true)
   }
 
-  // 热度趋势图标
-  const renderTrendIcon = (trend: string) => {
-    if (trend === 'up') {
-      return <ArrowUpOutlined style={{ color: '#ff4d4f' }} />
-    } else if (trend === 'down') {
-      return <ArrowDownOutlined style={{ color: '#52c41a' }} />
-    }
-    return <Text style={{ color: '#faad14' }}>—</Text>
-  }
-
-  // 风险等级标签颜色
-  const riskTagColor: Record<string, string> = {
-    high: 'error',
-    medium: 'warning',
-    low: 'success'
-  }
-
-  // 风险等级文本
-  const riskLevelText: Record<string, string> = {
-    high: '高风险',
-    medium: '中风险',
-    low: '低风险'
-  }
-
-  // 获取情感标签
-  const getSentimentTag = (score: number) => {
-    if (score > 0.6) {
-      return <Tag color="success">正面</Tag>
-    } else if (score < 0.4) {
-      return <Tag color="error">负面</Tag>
-    }
-    return <Tag color="default">中性</Tag>
-  }
-
-  // 表格列配置
   const columns = [
     {
-      title: '话题标题',
-      dataIndex: 'title',
-      key: 'title',
+      title: '话题',
+      dataIndex: 'topic',
+      key: 'topic',
       ellipsis: true,
       width: 300,
       render: (text: string, record: any) => (
@@ -222,119 +123,71 @@ const HotTopicListPage: React.FC = () => {
       )
     },
     {
-      title: '描述',
-      dataIndex: 'description',
-      key: 'description',
-      ellipsis: true,
-      width: 350
+      title: '提及次数',
+      dataIndex: 'count',
+      key: 'count',
+      width: 100,
+      sorter: (a: any, b: any) => a.count - b.count,
     },
     {
-      title: '热度',
-      dataIndex: 'heat',
-      key: 'heat',
+      title: '趋势',
+      dataIndex: 'sentiment',
+      key: 'sentiment',
       width: 100,
-      render: (value: number, record: any) => (
-        <Space>
-          <Text>{value}</Text>
-          {renderTrendIcon(record.trend)}
+      render: (val: string) => {
+        const info = SENTIMENT_MAP[val] || { color: 'default', text: val || '未知' }
+        return <Tag color={info.color}>{info.text}</Tag>
+      }
+    },
+    {
+      title: '平台分布',
+      dataIndex: 'platforms',
+      key: 'platforms',
+      width: 250,
+      render: (platforms: string[]) => (
+        <Space size={4} wrap>
+          {(platforms || []).map((p, i) => (
+            <Tag key={i} color="blue">{PLATFORM_MAP[p] || p}</Tag>
+          ))}
         </Space>
       )
     },
     {
-      title: '信息源数量',
-      dataIndex: 'sourceCount',
-      key: 'sourceCount',
-      width: 120
-    },
-    {
-      title: '情感倾向',
-      dataIndex: 'sentimentScore',
-      key: 'sentimentScore',
+      title: '相关舆情',
+      dataIndex: 'related_opinions',
+      key: 'related_opinions',
       width: 100,
-      render: (score: number) => getSentimentTag(score)
     },
     {
-      title: '分类',
-      dataIndex: 'category',
-      key: 'category',
-      width: 100,
-      render: (text: string) => <Tag color="blue">{text}</Tag>
+      title: '时间范围',
+      dataIndex: 'time_range',
+      key: 'time_range',
+      width: 150,
     },
-    {
-      title: '风险等级',
-      dataIndex: 'riskLevel',
-      key: 'riskLevel',
-      width: 100,
-      render: (level: string) => (
-        <Tag color={riskTagColor[level]} icon={<AlertOutlined />}>
-          {riskLevelText[level]}
-        </Tag>
-      )
-    },
-    {
-      title: '最新更新',
-      dataIndex: 'latestUpdate',
-      key: 'latestUpdate',
-      width: 150
-    },
-    {
-      title: '操作',
-      key: 'action',
-      width: 80,
-      render: (_: any, record: any) => (
-        <Button 
-          type="link" 
-          icon={<EyeOutlined />} 
-          onClick={() => handleViewDetail(record)} 
-        />
-      )
-    }
   ]
-
-  // 获取所有分类
-  const categories = ['all', ...Array.from(new Set(hotTopics.map(topic => topic.category)))]
 
   return (
     <div>
       <Title level={3}>热点话题管理</Title>
-      
-      {/* 统计卡片 */}
+
       <Row gutter={16} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={12} md={8}>
           <Card>
-            <Statistic
-              title="总话题数"
-              value={stats.totalTopics}
-              suffix="个"
-            />
+            <Statistic title="总话题数" value={stats.totalTopics} suffix="个" />
           </Card>
         </Col>
         <Col xs={24} sm={12} md={8}>
           <Card>
-            <Statistic
-              title="高风险话题"
-              value={stats.highRisk}
-              suffix="个"
-              valueStyle={{ color: '#ff4d4f' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={8}>
-          <Card>
-            <Statistic
-              title="总热度值"
-              value={stats.totalHeat}
-              precision={0}
-            />
+            <Statistic title="总提及次数" value={stats.totalHeat} />
           </Card>
         </Col>
       </Row>
-      
+
       <Card style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end', marginBottom: 16 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end' }}>
           <div style={{ flex: 1, minWidth: 200 }}>
             <Search
-              placeholder="搜索话题标题或描述"
+              placeholder="搜索话题"
               onSearch={handleSearch}
               onChange={(e) => setSearchKeyword(e.target.value)}
               allowClear
@@ -342,62 +195,57 @@ const HotTopicListPage: React.FC = () => {
               size="middle"
             />
           </div>
-          
-          <Button
-            icon={<ReloadOutlined />}
-            onClick={loadHotTopics}
-            loading={loading}
-          >
+          <Button icon={<ReloadOutlined />} onClick={() => loadHotTopics(pagination.page, pagination.pageSize)} loading={loading}>
             刷新数据
           </Button>
-          
-          <Select
-            placeholder="分类筛选"
-            value={selectedCategory}
-            onChange={setSelectedCategory}
-            style={{ width: 150 }}
-            size="middle"
-          >
-            <Select.Option value="all">全部分类</Select.Option>
-            {categories.filter(c => c !== 'all').map(cat => (
-              <Select.Option key={cat} value={cat}>{cat}</Select.Option>
-            ))}
-          </Select>
-          
-          <Select
-            placeholder="风险等级筛选"
-            value={selectedRisk}
-            onChange={setSelectedRisk}
-            style={{ width: 150 }}
-            size="middle"
-          >
-            <Select.Option value="all">全部风险</Select.Option>
-            <Select.Option value="high">高风险</Select.Option>
-            <Select.Option value="medium">中风险</Select.Option>
-            <Select.Option value="low">低风险</Select.Option>
-          </Select>
-        </div>
-        
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
-          <Button 
-            type="primary" 
-            icon={<DownloadOutlined />}
-            onClick={handleExport}
-          >
+          <Button type="primary" icon={<DownloadOutlined />} onClick={handleExport}>
             导出数据
           </Button>
         </div>
       </Card>
-      
+
       <Spin spinning={loading} tip="加载中...">
-        <Table 
-          columns={columns} 
-          dataSource={filteredTopics} 
-          rowKey="id" 
-          pagination={{ pageSize: 10 }}
+        <Table
+          columns={columns}
+          dataSource={filteredTopics}
+          rowKey="topic"
+          pagination={{
+            current: pagination.page,
+            pageSize: pagination.pageSize,
+            total: pagination.total,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total) => `共 ${total} 条`,
+            onChange: (page, pageSize) => loadHotTopics(page, pageSize),
+          }}
           scroll={{ x: 'max-content' }}
           locale={{ emptyText: '暂无热点话题数据' }}
         />
+
+        <Modal
+          title="热点话题详情"
+          open={detailVisible}
+          onCancel={() => setDetailVisible(false)}
+          footer={<Button onClick={() => setDetailVisible(false)}>关闭</Button>}
+          width={640}
+        >
+          {detailTopic && (
+            <Descriptions column={1} bordered size="small">
+              <Descriptions.Item label="话题">{detailTopic.topic}</Descriptions.Item>
+              <Descriptions.Item label="提及次数">{detailTopic.count}</Descriptions.Item>
+              <Descriptions.Item label="情感趋势">
+                <Tag color={detailTopic.sentiment === 'positive' ? 'green' : detailTopic.sentiment === 'negative' ? 'red' : 'blue'}>
+                  {detailTopic.sentiment || '未知'}
+                </Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="时间范围">{detailTopic.time_range}</Descriptions.Item>
+              <Descriptions.Item label="相关舆情数">{detailTopic.related_opinions}</Descriptions.Item>
+              <Descriptions.Item label="平台">
+                {(detailTopic.platforms || []).map((p: string) => <Tag key={p}>{p}</Tag>)}
+              </Descriptions.Item>
+            </Descriptions>
+          )}
+        </Modal>
       </Spin>
     </div>
   )

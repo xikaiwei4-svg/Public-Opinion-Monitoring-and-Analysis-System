@@ -1,0 +1,166 @@
+﻿﻿﻿﻿# docker-compose.yml
+# 校园舆情监控与热点话题分析系统 - 生产部署编排
+#
+# ── 前置条件 ──
+#   1. 前端已构建: cd frontend && npm run build
+#   2. 创建 .env 文件（参考 .env.example）
+#   3. redis.conf 在项目根目录（Redis 持久化配置）
+#
+# ── 启动命令 ──
+#   docker compose up -d
+#
+# ── 访问地址 ──
+#   http://localhost
+#
+# ── 备份指南 ──
+#   MySQL 备份:
+#     docker exec campus-mysql mysqldump -u root -p\"\\" \ > backup.sql
+#   MySQL 恢复:
+#     docker exec -i campus-mysql mysql -u root -p\"\\" \ < backup.sql
+#   Redis 备份:
+#     # AOF 文件在 redis_data 卷中，容器内路径 /data/appendonly.aof
+#     docker run --rm -v campus_redis_data:/data -v \C:\Users\wei\Desktop\22高本智能2班22053170231韦熙凯代码:/backup alpine cp /data/appendonly.aof /backup/
+#   ML 模型备份:
+#     tar czf models-backup.tar.gz -C backend ml/
+#
+# ── 集中式日志（可选）──
+#   如需上 ELK 或 Loki + Promtail，去掉各服务的 logging 块，
+#   改为使用 Docker 的日志驱动：
+#     --log-driver=loki --log-opt loki-url=http://loki:3100/loki/api/v1/push
+#   或在 docker-compose 里加:
+#     logging:
+#       driver: loki
+#       options:
+#         loki-url: "http://loki:3100/loki/api/v1/push"
+#         max-size: "10m"
+#
+#   Prometheus / Grafana 监控:
+#     GET /api/health          — Docker healthcheck / 存活探针
+#     GET /api/health/ready    — 就绪探针（查 MySQL + Redis）
+#     可选安装 prometheus-fastapi-instrumentator 暴露 /api/metrics 给 Prometheus
+# ============================================================
+
+version: \"3.8\"
+
+services:
+
+  mysql:
+    image: mysql:8.0
+    container_name: campus-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: \
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-campus_opinion}
+    volumes:
+      # 命名卷 — 容器删除重启后 MySQL 数据不丢
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: [\"CMD\", \"mysqladmin\", \"ping\", \"-h\", \"localhost\"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - campus-net
+    ports:
+      - \"3307:3306\"
+
+  redis:
+    image: redis:7-alpine
+    container_name: campus-redis
+    restart: unless-stopped
+    command: redis-server /usr/local/etc/redis/redis.conf
+    volumes:
+      # Redis 持久化配置（RDB 快照 + AOF 追加日志）
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+      # 命名卷 — AOF 日志和 RDB 快照都存在这里
+      - redis_data:/data
+    healthcheck:
+      test: [\"CMD\", \"redis-cli\", \"ping\"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - campus-net
+    ports:
+      - \"6380:6379\"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: campus-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?请设置 MYSQL_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-campus_opinion}
+      SECRET_KEY: ${SECRET_KEY:?请设置 SECRET_KEY}
+      DEBUG: "false"
+      REDIS_URL: redis://redis:6379/0
+    healthcheck:
+      # 通过 /api/health 端点判断应用是否存活（需要 curl）
+      test: [\"CMD\", \"curl\", \"-f\", \"http://localhost:8000/api/health\"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s  # 等 ML 模型加载完
+    volumes:
+      # 绑定挂载 — ML 模型文件实时生效，热更新只需替换文件
+      - ./backend/ml:/app/ml
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - campus-net
+    ports:
+      - \"8000:8000\"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: campus-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - campus-net
+    ports:
+      - \"80:80\"
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  campus-net:
+    driver: bridge
+

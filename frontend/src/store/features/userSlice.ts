@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
 import { RootState } from '../index'
-import { handleApiRequest } from '../../utils/mockData'
+import { handleApiRequest } from '../../utils/apiClient'
 
 // 定义用户类型（与后端API匹配）
 export interface User {
@@ -155,7 +155,7 @@ export const mockUsers: User[] = [
 ];
 
 // 模拟管理员用户数据
-const mockAdminUser = mockUsers[0];
+const mockAdminUser: User = { id: 1, username: 'admin', email: 'admin@campus.edu', role: 'admin' };
 
 // 定义初始状态
 const initialState: UserState = {
@@ -183,28 +183,19 @@ export const login = createAsyncThunk(
   'user/login',
   async (credentials: LoginRequest, { rejectWithValue }) => {
     try {
-      const data = await handleApiRequest<{
-        token: string;
-        user: User;
-      }>({
+      const response = await handleApiRequest<any>({
         method: 'POST',
         url: '/api/auth/login',
         data: credentials
       });
+      // 后端返回 {code, data: {token, user}}, 取 data 层
+      const result = response.data || response;
       // 保存token到localStorage
-      localStorage.setItem('token', data.token);
-      return data;
+      localStorage.setItem('token', result.token);
+      return result;
     } catch (error) {
       console.error('登录失败:', error);
-      // 返回模拟数据，因为无法连接后端服务
-      const mockToken = 'mock-jwt-token';
-      const mockData = {
-        token: mockToken,
-        user: mockAdminUser
-      };
-      // 保存模拟token到localStorage
-      localStorage.setItem('token', mockToken);
-      return mockData;
+      return rejectWithValue('登录失败，请检查网络连接');
     }
   }
 );

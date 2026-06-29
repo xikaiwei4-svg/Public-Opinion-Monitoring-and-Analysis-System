@@ -1,6 +1,5 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '../index';
-import { fetchApiData } from '../../utils/apiCache';
 
 // 定义趋势数据类型
 export interface TrendDataPoint {
@@ -28,6 +27,7 @@ export interface TrendState {
   sentimentTrend: SentimentTrendData[];
   platformDistribution: PlatformDistributionData[];
   loading: boolean;
+  loadingCount: number;
   error: string | null;
   timeRange: '7' | '15' | '30';
   selectedPlatform: string | null;
@@ -39,6 +39,7 @@ export const initialState: TrendState = {
   sentimentTrend: [],
   platformDistribution: [],
   loading: false,
+  loadingCount: 0,
   error: null,
   timeRange: '7',
   selectedPlatform: null
@@ -70,7 +71,7 @@ const getDateString = (timestamp: string | undefined): string | null => {
 export const fetchOpinionTrend = createAsyncThunk(
   'trend/fetchOpinionTrend',
   async (params: {
-    days: '7' | '15' | '30';
+    days: string;
     platform?: string;
   }) => {
     try {
@@ -107,7 +108,7 @@ export const fetchOpinionTrend = createAsyncThunk(
 export const fetchSentimentTrend = createAsyncThunk(
   'trend/fetchSentimentTrend',
   async (params: {
-    days: '7' | '15' | '30';
+    days: string;
     platform?: string;
   }) => {
     try {
@@ -145,7 +146,7 @@ export const fetchSentimentTrend = createAsyncThunk(
 export const fetchPlatformDistribution = createAsyncThunk(
   'trend/fetchPlatformDistribution',
   async (params: {
-    days: '7' | '15' | '30';
+    days: string;
   }) => {
     try {
       // 计算日期范围
@@ -240,43 +241,52 @@ const trendSlice = createSlice({
     builder
       // 获取舆情趋势数据
       .addCase(fetchOpinionTrend.pending, (state) => {
+        state.loadingCount++;
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchOpinionTrend.fulfilled, (state, action) => {
-        state.loading = false;
+        state.loadingCount--;
+        state.loading = state.loadingCount > 0;
         state.opinionTrend = action.payload;
       })
       .addCase(fetchOpinionTrend.rejected, (state, action) => {
-        state.loading = false;
+        state.loadingCount--;
+        state.loading = state.loadingCount > 0;
         state.error = action.error.message || '获取舆情趋势数据失败';
       })
-      
+
       // 获取情感趋势数据
       .addCase(fetchSentimentTrend.pending, (state) => {
+        state.loadingCount++;
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchSentimentTrend.fulfilled, (state, action) => {
-        state.loading = false;
+        state.loadingCount--;
+        state.loading = state.loadingCount > 0;
         state.sentimentTrend = action.payload;
       })
       .addCase(fetchSentimentTrend.rejected, (state, action) => {
-        state.loading = false;
+        state.loadingCount--;
+        state.loading = state.loadingCount > 0;
         state.error = action.error.message || '获取情感趋势数据失败';
       })
-      
+
       // 获取平台分布数据
       .addCase(fetchPlatformDistribution.pending, (state) => {
+        state.loadingCount++;
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchPlatformDistribution.fulfilled, (state, action) => {
-        state.loading = false;
+        state.loadingCount--;
+        state.loading = state.loadingCount > 0;
         state.platformDistribution = action.payload;
       })
       .addCase(fetchPlatformDistribution.rejected, (state, action) => {
-        state.loading = false;
+        state.loadingCount--;
+        state.loading = state.loadingCount > 0;
         state.error = action.error.message || '获取平台分布数据失败';
       });
   }

@@ -4,7 +4,6 @@ import { BrowserRouter } from 'react-router-dom'
 import { Provider } from 'react-redux'
 import App from './App'
 import store from './store'
-import { warmupCache } from './utils/apiCache'
 import { fetchCurrentUser } from './store/features/userSlice'
 
 // 性能监控和用户状态恢复组件
@@ -15,12 +14,7 @@ const PerformanceMonitor: React.FC = () => {
     if (token) {
       store.dispatch(fetchCurrentUser())
     }
-    
-    // 启动缓存预热
-    warmupCache().catch(error => {
-      console.error('缓存预热失败:', error)
-    })
-    
+
     // 性能监控
     const performanceObserver = new PerformanceObserver((list) => {
       list.getEntries().forEach(entry => {

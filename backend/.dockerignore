@@ -1,0 +1,8 @@
+﻿# backend/.dockerignore
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.env.local
+*.log
+*.tmp

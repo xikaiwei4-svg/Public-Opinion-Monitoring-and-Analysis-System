@@ -67,18 +67,18 @@ const ChartComponent: React.FC<ChartComponentProps> = ({
           type: 'line',
           data: data.map(item => item.count),
           smooth: true,
-          lineStyle: { 
+          lineStyle: {
             width: 3,
-            shadowColor: 'rgba(24, 144, 255, 0.5)',
+            shadowColor: 'rgba(102, 126, 234, 0.5)',
             shadowBlur: 10,
             shadowOffsetY: 5
           },
-          itemStyle: { 
-            color: '#1890ff',
+          itemStyle: {
+            color: '#667eea',
             borderColor: '#fff',
             borderWidth: 2
           },
-          areaStyle: { 
+          areaStyle: {
             color: {
               type: 'linear',
               x: 0,
@@ -86,9 +86,9 @@ const ChartComponent: React.FC<ChartComponentProps> = ({
               x2: 0,
               y2: 1,
               colorStops: [{
-                offset: 0, color: 'rgba(24, 144, 255, 0.3)'
+                offset: 0, color: 'rgba(102, 126, 234, 0.3)'
               }, {
-                offset: 1, color: 'rgba(24, 144, 255, 0.05)'
+                offset: 1, color: 'rgba(102, 126, 234, 0.05)'
               }]
             }
           },
@@ -207,12 +207,12 @@ const ChartComponent: React.FC<ChartComponentProps> = ({
             name: '中性', 
             type: 'bar', 
             data: data.map(item => item.neutral), 
-            itemStyle: { color: '#1890ff' },
+            itemStyle: { color: '#667eea' },
             emphasis: {
               itemStyle: {
                 shadowBlur: 10,
                 shadowOffsetX: 0,
-                shadowColor: 'rgba(24, 144, 255, 0.5)'
+                shadowColor: 'rgba(102, 126, 234, 0.5)'
               }
             }
           },

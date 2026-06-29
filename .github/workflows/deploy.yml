@@ -1,0 +1,178 @@
+﻿# ============================================================
+# deploy.yml — 部署流水线
+# 代码推到 main → 自动构建 Docker 镜像 → 推送到镜像仓库 → 部署到服务器
+# ============================================================
+#
+# GitHub Secrets 需要配置:
+# ┌──────────────────────┬──────────────────────────────────────────────┐
+# │       密钥名         │                   说明                       │
+# ├──────────────────────┼──────────────────────────────────────────────┤
+# │ REGISTRY_ENDPOINT    │ 镜像仓库地址+命名空间                        │
+# │                      │ ACR: registry.cn-hangzhou.aliyuncs.com/命名  │
+# │                      │ DH:  docker.io/用户名                        │
+# │ REGISTRY_USERNAME    │ 镜像仓库登录用户名                           │
+# │ REGISTRY_PASSWORD    │ 镜像仓库登录密码                             │
+# ├──────────────────────┼──────────────────────────────────────────────┤
+# │ DEPLOY_HOST          │ 服务器 IP / 域名                             │
+# │ DEPLOY_USER          │ SSH 登录用户名                               │
+# │ DEPLOY_SSH_KEY       │ SSH 私钥（RSA/Ed25519）                      │
+# ├──────────────────────┼──────────────────────────────────────────────┤
+# │ PROD_DB_PASSWORD     │ 生产数据库密码                               │
+# │ PROD_SECRET_KEY      │ 生产 JWT 密钥                                │
+# └──────────────────────┴──────────────────────────────────────────────┘
+# ============================================================
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:  # 支持手动触发
+
+env:
+  REGISTRY_ENDPOINT: ${{ secrets.REGISTRY_ENDPOINT }}
+
+jobs:
+
+  # ──────────────────────────────────────────────
+  # 作业 1：构建并推送 Docker 镜像
+  # ──────────────────────────────────────────────
+  build-and-push:
+    name: 构建并推送镜像
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 登录镜像仓库
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.REGISTRY_ENDPOINT }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: 设置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 构建并推送后端镜像
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: backend/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.REGISTRY_ENDPOINT }}/campus-backend:${{ github.sha }}
+            ${{ secrets.REGISTRY_ENDPOINT }}/campus-backend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: 构建并推送前端镜像
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: frontend/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.REGISTRY_ENDPOINT }}/campus-frontend:${{ github.sha }}
+            ${{ secrets.REGISTRY_ENDPOINT }}/campus-frontend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ──────────────────────────────────────────────
+  # 作业 2：部署到服务器（等镜像推送完成）
+  # ──────────────────────────────────────────────
+  deploy:
+    name: 部署到服务器
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: success()
+
+    steps:
+      - name: 检出代码（获取 docker-compose 文件）
+        uses: actions/checkout@v4
+
+      - name: 复制配置文件到服务器
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: 22
+          source: "docker-compose.yml,deploy/"
+          target: /opt/campus-opinion
+          strip_components: 0
+      - name: 部署到服务器
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: 22
+          # 将 GitHub 环境变量透传到远程 SSH 会话
+          envs: REGISTRY_ENDPOINT,GIT_SHA,PROD_DB_PASSWORD,PROD_SECRET_KEY
+          script: |
+            set -e
+
+            echo "🔧 创建临时配置文件..."
+            # ── 1) 创建生产 .env（用完即销毁）──
+            cat > /tmp/campus-env << ENVEOF
+            MYSQL_PASSWORD=$PROD_DB_PASSWORD
+            SECRET_KEY=$PROD_SECRET_KEY
+            DEBUG=False
+            ENVIRONMENT=production
+            ENVEOF
+            echo "   /tmp/campus-env ✓"
+
+            # ── 2) 确保目标目录存在 ──
+            DEPLOY_DIR=/opt/campus-opinion
+            mkdir -p $DEPLOY_DIR/deploy
+
+            # ── 3) 复制 docker-compose 文件到服务器 ──
+            # 注意：先确保 ci.yml 的检测代码已将最新配置检出到 runner，
+            # 这里假设部署目录已有一份引用，或通过 rsync/scp 同步。
+            # 生产环境建议先将配置文件单独管理，或部署脚本自带。
+
+            # ── 4) 拉取最新镜像 ──
+            echo "📦 拉取最新镜像..."
+            cd $DEPLOY_DIR
+            REGISTRY_ENDPOINT=$REGISTRY_ENDPOINT TAG=$GIT_SHA \
+              docker compose \
+              -f docker-compose.yml \
+              -f deploy/docker-compose.prod.yml \
+              pull
+            echo "   镜像已就绪 ✓"
+
+            # ── 5) 重启服务 ──
+            echo "🚀 重启服务..."
+            REGISTRY_ENDPOINT=$REGISTRY_ENDPOINT TAG=$GIT_SHA \
+              docker compose \
+              -f docker-compose.yml \
+              -f deploy/docker-compose.prod.yml \
+              --env-file /tmp/campus-env \
+              up -d
+            echo "   服务已重启 ✓"
+
+            # ── 6) 清理临时凭证 ──
+            rm /tmp/campus-env
+            echo "🧹 临时凭证已销毁"
+
+            # ── 7) 健康检查确认 ──
+            echo "⏳ 等待健康检查..."
+            sleep 10
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/health || echo "000")
+            if [ "$STATUS" = "200" ]; then
+              echo "   ✅ 后端健康检查通过 (HTTP $STATUS)"
+            else
+              echo "   ⚠️ 后端健康检查未通过 (HTTP $STATUS)，查看日志: docker compose logs backend"
+            fi
+
+            echo "🎉 部署完成"
+
+        env:
+          REGISTRY_ENDPOINT: ${{ secrets.REGISTRY_ENDPOINT }}
+          GIT_SHA: ${{ github.sha }}
+          PROD_DB_PASSWORD: ${{ secrets.PROD_DB_PASSWORD }}
+          PROD_SECRET_KEY: ${{ secrets.PROD_SECRET_KEY }}

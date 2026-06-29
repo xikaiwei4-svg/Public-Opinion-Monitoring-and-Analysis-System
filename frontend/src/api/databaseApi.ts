@@ -1,9 +1,10 @@
-import axios from 'axios'
+﻿import axios from 'axios'
 
-const API_BASE_URL = 'http://localhost:8000'
-
+// 注意：API_BASE_URL 从 .env.production 读取
+// 在 Docker 部署中 VITE_API_BASE_URL=/api，但 API 路径已包含 /api/ 前缀
+// 所以这里不用 baseURL（留空），让请求走同源的完整路径
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: '',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json'
@@ -24,13 +25,13 @@ export const getCollections = async () => {
 
 // 获取集合详情
 export const getCollectionDetail = async (collectionName: string) => {
-  const response = await api.get(`/api/database/collections/${collectionName}`)
+  const response = await api.get(/api/database/collections/)
   return response.data
 }
 
 // 删除集合
 export const deleteCollection = async (collectionName: string) => {
-  const response = await api.delete(`/api/database/collections/${collectionName}`)
+  const response = await api.delete(/api/database/collections/)
   return response.data
 }
 
@@ -48,26 +49,48 @@ export const runCrawler = async (platform: string = 'all', keywords?: string[]) 
 
 // 获取爬虫任务状态
 export const getCrawlerTaskStatus = async (taskId: string) => {
-  const response = await api.get(`/api/database/crawler/task/${taskId}`)
+  const response = await api.get(/api/database/crawler/task/)
   return response.data
 }
 
-// 获取舆情数据列表
-export const getOpinions = async (skip: number = 0, limit: number = 100) => {
-  const response = await api.get(`/api/database/opinions?skip=${skip}&limit=${limit}`)
-  return response.data.items || []
-}
-
-// 获取舆情数据列表（带总数）
-export const getOpinionsWithTotal = async (skip: number = 0, limit: number = 100) => {
-  const response = await api.get(`/api/database/opinions?skip=${skip}&limit=${limit}`)
+// 添加数据库配置
+export const addDatabaseConfig = async (config: any) => {
+  const response = await api.post('/api/database/config', config)
   return response.data
 }
 
-// 创建舆情数据
-export const createOpinion = async (opinionData: any) => {
-  const response = await api.post('/api/database/opinions', opinionData)
+// 更新数据库配置
+export const updateDatabaseConfig = async (id: string, config: any) => {
+  const response = await api.put(/api/database/config/, config)
   return response.data
 }
 
-export default api
+// 删除数据库配置
+export const removeDatabaseConfig = async (id: string) => {
+  const response = await api.delete(/api/database/config/)
+  return response.data
+}
+
+// 获取数据库统计
+export const getDatabaseStatsDetail = async (days: number = 7) => {
+  const response = await api.get(/api/database/stats?days=)
+  return response.data
+}
+
+// 获取数据库日志
+export const getDatabaseLogs = async (page: number = 1, pageSize: number = 20) => {
+  const response = await api.get(/api/database/logs?page=&pageSize=)
+  return response.data
+}
+
+// 初始化数据库
+export const initDatabase = async () => {
+  const response = await api.post('/api/database/init')
+  return response.data
+}
+
+// 删除集合中的所有文档
+export const clearCollection = async (collectionName: string) => {
+  const response = await api.delete(/api/database/collections//clear)
+  return response.data
+}

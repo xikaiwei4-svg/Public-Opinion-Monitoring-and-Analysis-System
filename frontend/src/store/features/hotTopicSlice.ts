@@ -1,7 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '../index';
-import { handleApiRequest } from '../../utils/mockData';
+import { handleApiRequest } from '../../utils/apiClient';
 
 // 定义热点话题数据类型
 interface HotTopic {
@@ -416,7 +415,7 @@ export const compareHotTopics = createAsyncThunk(
         method: 'GET',
         url: '/api/hot-topic/compare',
         params: {
-          topic_ids: params.topic_ids.join(',')
+          ids: params.topic_ids.join(',')
         }
       });
       return data;
