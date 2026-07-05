@@ -70,7 +70,7 @@ _startup_start = 0.0
 
 
 
-from routers.health_router import health_router
+from routers.health_router import router as health_router
 from auth.auth_router import auth_router
 
 from routers.mysql_database_router import router as database_router
