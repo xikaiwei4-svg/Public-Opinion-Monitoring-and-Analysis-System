@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-BERT情感分析API路由 — 基于预训练Transformer模型的高精度情感分析
+BERT情感分析API路由  基于预训练Transformer模型的高精度情感分析
 """
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session

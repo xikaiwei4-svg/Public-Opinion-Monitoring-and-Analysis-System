@@ -1,5 +1,5 @@
 """
-BERT情感分析模型 — BERT嵌入 + 逻辑回归分类器
+BERT情感分析模型  BERT嵌入 + 逻辑回归分类器
 在11967条标注数据上训练, 准确率 91.7%
 """
 import os
@@ -112,7 +112,7 @@ _bert_analyzer = None
 
 
 def get_bert_analyzer() -> BERTSentimentAnalyzer:
-    """Lazy load BERT — 只在首次调用时加载模型"""
+    """Lazy load BERT  只在首次调用时加载模型"""
     global _bert_analyzer
     if _bert_analyzer is None:
         _bert_analyzer = BERTSentimentAnalyzer()

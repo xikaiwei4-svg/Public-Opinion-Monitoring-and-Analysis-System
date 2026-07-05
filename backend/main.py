@@ -2,7 +2,7 @@
 
 """
 
-鏍″洯鑸嗘儏妫€娴嬩笌鐑偣璇濋鍒嗘瀽绯荤粺鍚庣
+鏍″洯鑸嗘儏妫娴嬩笌鐑偣璇濋鍒嗘瀽绯荤粺鍚庣
 
 """
 
@@ -20,7 +20,7 @@ import mimetypes
 
 
 
-# 闈欐€佹枃浠剁紦瀛樺ご涓棿浠?
+# 闈欐佹枃浠剁紦瀛樺ご涓棿浠?
 
 class CachedStaticFiles(StaticFiles):
 
@@ -117,9 +117,9 @@ class CustomJSONResponse(JSONResponse):
 
 app = FastAPI(
 
-    title="鏍″洯鑸嗘儏妫€娴嬩笌鐑偣璇濋鍒嗘瀽绯荤粺",
+    title="鏍″洯鑸嗘儏妫娴嬩笌鐑偣璇濋鍒嗘瀽绯荤粺",
 
-    description="鐢ㄤ簬瀹炴椂鐩戞帶銆佸垎鏋愬拰鍙鍖栨牎鍥浉鍏宠垎鎯呬俊鎭殑骞冲彴",
+    description="鐢ㄤ簬瀹炴椂鐩戞帶銆佸垎鏋愬拰鍙鍖栨牎鍥浉鍏宠垎鎯呬俊鎭殑骞冲彴",
 
     version="2.0.0",
 
@@ -161,7 +161,7 @@ app.include_router(trend_router)
 
 
 
-# 鈹€鈹€ 闈欐€佹枃浠讹紙鐢熶骇鍓嶇鏋勫缓浜х墿锛夆攢鈹€
+# 鈹鈹 闈欐佹枃浠讹紙鐢熶骇鍓嶇鏋勫缓浜х墿锛夆攢鈹
 
 FRONTEND_DIST = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "frontend", "dist")
 
@@ -173,11 +173,11 @@ if os.path.exists(FRONTEND_DIST):
 
     app.mount("/assets", CachedStaticFiles(directory=os.path.join(FRONTEND_DIST, "assets")), name="assets")
 
-    logger.info(f"鍓嶇闈欐€佹枃浠舵湇鍔″凡鍚敤: {FRONTEND_DIST}")
+    logger.info(f"鍓嶇闈欐佹枃浠舵湇鍔″凡鍚敤: {FRONTEND_DIST}")
 
 else:
 
-    logger.warning(f"鍓嶇鏋勫缓浜х墿涓嶅瓨鍦? {FRONTEND_DIST}锛屼粎鎻愪緵API鏈嶅姟")
+    logger.warning(f"鍓嶇鏋勫缓浜х墿涓嶅瓨鍦? {FRONTEND_DIST}锛屼粎鎻愪緵API鏈嶅姟")
 
 
 
@@ -209,13 +209,13 @@ async def startup_event():
 
 
 
-    logger.info("绯荤粺鍚姩涓?..")
+    logger.info("绯荤粺鍚姩涓?..")
 
 
 
-    # 鈹€鈹€ 缂撳瓨棰勭儹锛堜粎鍏抽敭鏁版嵁锛屼笉鍔犺浇BERT锛夆攢鈹€
+    # 鈹鈹 缂撳瓨棰勭儹锛堜粎鍏抽敭鏁版嵁锛屼笉鍔犺浇BERT锛夆攢鈹
 
-    logger.info("寮€濮婻edis缂撳瓨棰勭儹锛堣交閲忔ā寮忥級...")
+    logger.info("寮濮婻edis缂撳瓨棰勭儹锛堣交閲忔ā寮忥級...")
 
 
 
@@ -305,7 +305,7 @@ async def startup_event():
 
 
 
-    logger.info(f"绯荤粺鍚姩瀹屾垚 ({time.time() - _startup_start:.1f}s) - Redis: {'鍙敤' if redis_cache.available else '鍐呭瓨妯″紡'} | BERT: 寤惰繜鍔犺浇")
+    logger.info(f"绯荤粺鍚姩瀹屾垚 ({time.time() - _startup_start:.1f}s) - Redis: {'鍙敤' if redis_cache.available else '鍐呭瓨妯″紡'} | BERT: 寤惰繜鍔犺浇")
 
 
 
@@ -321,11 +321,11 @@ async def shutdown_event():
 
 
 
-@app.get("/", tags=["鍓嶇"])
+@app.get("/", tags=["鍓嶇"])
 
 async def serve_root():
 
-    """鍓嶇棣栭〉"""
+    """Frontend index page. Port 80 maps here."""
 
     index_path = os.path.join(FRONTEND_DIST, "index.html")
 
@@ -339,21 +339,21 @@ async def serve_root():
 
 
 
-@app.get("/api/ping", tags=["鍩虹鎺ュ彛"])
+@app.get("/api/ping", tags=["鍩虹鎺ュ彛"])
 
 async def ping():
 
-    return {"status": "ok", "message": "鏈嶅姟杩愯姝ｅ父", "timestamp": datetime.now().isoformat()}
+    return {"status": "ok", "message": "鏈嶅姟杩愯姝ｅ父", "timestamp": datetime.now().isoformat()}
 
 
 
 
 
-@app.get("/api/cache/status", tags=["鍩虹鎺ュ彛"])
+@app.get("/api/cache/status", tags=["鍩虹鎺ュ彛"])
 
 async def cache_status():
 
-    """鏌ョ湅缂撳瓨鐘舵€?""
+    """View cache status. Checks Redis availability."""
 
     return {
 
@@ -369,11 +369,11 @@ async def cache_status():
 
 
 
-@app.post("/api/cache/refresh", tags=["鍩虹鎺ュ彛"])
+@app.post("/api/cache/refresh", tags=["鍩虹鎺ュ彛"])
 
 async def refresh_cache():
 
-    """鎵嬪姩鍒锋柊鍏ㄩ儴缂撳瓨"""
+    """Manually refresh all cached data."""
 
     redis_cache.delete_pattern("cache:*")
 
@@ -399,13 +399,13 @@ async def refresh_cache():
 
         db.close()
 
-    return {"message": "缂撳瓨宸插埛鏂?, "timestamp": datetime.now().isoformat()}
+    return {"message": "Cache refreshed", "timestamp": datetime.now().isoformat()}
 
 
 
 
 
-# 鈹€鈹€ 璇嶄簯鍏抽敭璇?API 鈹€鈹€
+# 鈹鈹 璇嶄簯鍏抽敭璇?API 鈹鈹
 
 
 
@@ -413,7 +413,7 @@ async def refresh_cache():
 
 async def get_keyword_cloud():
 
-    """鑾峰彇璇嶄簯鍏抽敭璇嶉鐜?(缂撳瓨5鍒嗛挓)"""
+    """Get word cloud keyword frequency. Cached for 5 minutes."""
 
     cache_key = "cache:keywords:cloud"
 
@@ -435,7 +435,7 @@ async def get_keyword_cloud():
 
 
 
-            # 1) 浠庡叧閿瘝瀛楁鎻愬彇 Top 60
+            # 1) 浠庡叧閿瘝瀛楁鎻愬彇 Top 60
 
             kw_results = db.query(Opinion.keywords, func.count(Opinion.id)).filter(
 
@@ -465,39 +465,39 @@ async def get_keyword_cloud():
 
 
 
-            # 3) 楂橀璇嶄粠鍐呭涓彁鍙?
+            # 3) 楂橀璇嶄粠鍐呭涓彁鍙?
 
             high_freq_words = [
 
-                "鏍″洯", "瀛︾敓", "瀛︽牎", "澶у", "鏁欒偛", "鑰冭瘯", "璇剧▼",
+                "鏍″洯", "瀛︾敓", "瀛︽牎", "澶у", "鏁欒偛", "鑰冭瘯", "璇剧▼",
 
-                "瀹胯垗", "椋熷爞", "鍥句功棣?, "鏁欏妤?, "瀹為獙瀹?, "鎿嶅満",
+                "瀹胯垗", "椋熷爞", "鍥句功棣", "鏁欏妤", "瀹為獙瀹", "鎿嶅満",
 
-                "灏变笟", "鑰冪爺", "瀹炰範", "绀惧洟", "瀛︾敓浼?, "蹇楁効鑰?,
+                "灏变笟", "鑰冪爺", "瀹炰範", "绀惧洟", "瀛︾敓浼", "蹇楁効鑰",
 
                 "瀹夊叏", "缃戠粶", "浣撹偛", "鏂囧寲", "璁插骇", "姣旇禌",
 
-                "濂栧閲?, "鍔╁閲?, "閫夎", "姣曚笟", "璁烘枃", "瀵煎笀",
+                "濂栧閲", "鍔╁閲", "閫夎", "姣曚笟", "璁烘枃", "瀵煎笀",
 
-                "绉戠爺", "瀛︽湳", "鍒涙柊", "瀹炶返", "瀹炶", "鏍′紒鍚堜綔",
+                "绉戠爺", "瀛︽湳", "鍒涙柊", "瀹炶返", "瀹炶", "鏍′紒鍚堜綔",
 
-                "鏍″洯鏂囧寲", "瀛﹂寤鸿", "鎬濇兂鏁欒偛", "蹇冪悊杈呭",
+                "鏍″洯鏂囧寲", "瀛﹂寤鸿", "鎬濇兂鏁欒偛", "蹇冪悊杈呭",
 
-                "鏍″洯瀹夊叏", "椋熷搧鍗敓", "鍚庡嫟鏈嶅姟", "鏁欏姟绯荤粺",
+                "鏍″洯瀹夊叏", "椋熷搧鍗敓", "鍚庡嫟鏈嶅姟", "鏁欏姟绯荤粺",
 
-                "鍦ㄧ嚎璇剧▼", "瀛︿範姘涘洿", "甯堣祫鍔涢噺", "纭欢璁炬柦",
+                "鍦ㄧ嚎璇剧▼", "瀛︿範姘涘洿", "甯堣祫鍔涢噺", "纭欢璁炬柦",
 
-                "鏍″洯鐜", "浜ら€氬嚭琛?, "鏍″洯娑堣垂", "鑰冭瘯鍛?,
+                "鏍″洯鐜", "浜ら氬嚭琛", "鏍″洯娑堣垂", "鑰冭瘯鍛",
 
-                "鏂扮敓鎶ュ埌", "姣曚笟鐢?, "鏍℃嫑", "淇濈爺", "鎺ㄥ厤",
+                "鏂扮敓鎶ュ埌", "姣曚笟鐢", "鏍℃嫑", "淇濈爺", "鎺ㄥ厤",
 
-                "鍙屽浣?, "杈呬慨", "浜ゆ崲鐢?, "鐣欏鐢?, "澶栨暀",
+                "鍙屽浣", "杈呬慨", "浜ゆ崲鐢", "鐣欏鐢", "澶栨暀",
 
-                "鑻辫瑙?, "鏅ㄨ", "鏅氳嚜涔?, "鏈熶腑鑰?, "鏈熸湯",
+                "鑻辫瑙", "鏅ㄨ", "鏅氳嚜涔", "鏈熶腑鑰", "鏈熸湯",
 
-                "鍥涘叚绾?, "鎵樼", "闆呮€?, "GRE", "鑰冨叕",
+                "鍥涘叚绾", "鎵樼", "闆呮", "GRE", "鑰冨叕",
 
-                "杩愬姩浼?, "绡悆璧?, "瓒崇悆璧?, "鍗佷匠姝屾墜", "杈╄璧?,
+                "杩愬姩浼", "绡悆璧", "瓒崇悆璧", "鍗佷匠姝屾墜", "杈╄璧",
 
             ]
 
@@ -521,7 +521,7 @@ async def get_keyword_cloud():
 
                 name = w["name"].strip()
 
-                # 杩囨护澶暱鐨勶紙涓嶆槸鐪熸鐨勫叧閿瘝锛?
+                # 杩囨护澶暱鐨勶紙涓嶆槸鐪熸鐨勫叧閿瘝锛?
 
                 if len(name) > 10:
 
@@ -535,23 +535,23 @@ async def get_keyword_cloud():
 
 
 
-            # 濡傛灉涓嶅100涓紝鐢ㄩ珮棰戞牎鍥瘝琛ヨ冻
+            # 濡傛灉涓嶅100涓紝鐢ㄩ珮棰戞牎鍥瘝琛ヨ冻
 
             if len(unique) < 80:
 
                 extra = [
 
-                    "鏍″洯娲诲姩", "瀛︾敓鏉冪泭", "鏁欏璐ㄩ噺", "鏍″洯绠＄悊", "灏变笟鎸囧",
+                    "鏍″洯娲诲姩", "瀛︾敓鏉冪泭", "鏁欏璐ㄩ噺", "鏍″洯绠＄悊", "灏变笟鎸囧",
 
-                    "鍒涙柊鍒涗笟", "蹇楁効娲诲姩", "瀛︽湳鎶ュ憡", "瀛︾绔炶禌", "鏍″洯鎷涜仒",
+                    "鍒涙柊鍒涗笟", "蹇楁効娲诲姩", "瀛︽湳鎶ュ憡", "瀛︾绔炶禌", "鏍″洯鎷涜仒",
 
-                    "鍚嶅笀璁插骇", "鏍″洯骞挎挱", "瀛︾敓浜嬪姟", "蹇冪悊鍋ュ悍", "鍗敓妫€鏌?,
+                    "鍚嶅笀璁插骇", "鏍″洯骞挎挱", "瀛︾敓浜嬪姟", "蹇冪悊鍋ュ悍", "鍗敓妫鏌",
 
-                    "鐝洟娲诲姩", "绀句細瀹炶返", "瀹為獙鏁欏", "澶栬瀛︿範", "鍑哄浗浜ゆ祦",
+                    "鐝洟娲诲姩", "绀句細瀹炶返", "瀹為獙鏁欏", "澶栬瀛︿範", "鍑哄浗浜ゆ祦",
 
-                    "鏍″洯缃戦€?, "椋熷爞鍗敓", "浣滄伅鏃堕棿", "鏈熸湯鑰冭瘯", "璁烘枃绛旇京",
+                    "鏍″洯缃戦", "椋熷爞鍗敓", "浣滄伅鏃堕棿", "鏈熸湯鑰冭瘯", "璁烘枃绛旇京",
 
-                    "缁煎悎娴嬭瘎", "璇勫璇勪紭", "鍕ゅ伐淇", "璐洶琛ュ姪", "绌鸿皟瀹夎",
+                    "缁煎悎娴嬭瘎", "璇勫璇勪紭", "鍕ゅ伐淇", "璐洶琛ュ姪", "绌鸿皟瀹夎",
 
                 ]
 
@@ -587,17 +587,17 @@ async def get_keyword_cloud():
 
             {"name": "椋熷爞娑ㄤ环", "value": 520},
 
-            {"name": "鍥句功棣?, "value": 450},
+            {"name": "鍥句功棣", "value": 450},
 
-            {"name": "鏈熸湯鑰?, "value": 430},
+            {"name": "鏈熸湯鑰", "value": 430},
 
-            {"name": "鏍″洯缃?, "value": 380},
+            {"name": "鏍″洯缃", "value": 380},
 
-            {"name": "濂栧閲?, "value": 350},
+            {"name": "濂栧閲", "value": 350},
 
-            {"name": "杩愬姩浼?, "value": 320},
+            {"name": "杩愬姩浼", "value": 320},
 
-            {"name": "閫夎", "value": 280},
+            {"name": "閫夎", "value": 280},
 
             {"name": "绀惧洟", "value": 250},
 
@@ -609,7 +609,7 @@ async def get_keyword_cloud():
 
             {"name": "椋熷爞", "value": 160},
 
-            {"name": "鏁欏妤?, "value": 140},
+            {"name": "鏁欏妤", "value": 140},
 
             {"name": "瀹夊叏", "value": 120},
 
@@ -623,35 +623,35 @@ async def get_keyword_cloud():
 
 
 
-# 鈹€鈹€ SSE 瀹炴椂鎺ㄦ祦 鈹€鈹€
+# 鈹鈹 SSE 瀹炴椂鎺ㄦ祦 鈹鈹
 
 
 
-LIVE_PLATFORMS = ["寰崥", "寰俊", "鐭ヤ箮", "鏂版氮鏁欒偛", "鎼滅嫄鏁欒偛", "涓浗鏁欒偛鍦ㄧ嚎", "楂樿€冪綉"]
+LIVE_PLATFORMS = ["寰崥", "寰俊", "鐭ヤ箮", "鏂版氮鏁欒偛", "鎼滅嫄鏁欒偛", "涓浗鏁欒偛鍦ㄧ嚎", "楂樿冪綉"]
 
-LIVE_KEYWORDS = ["椋熷爞", "鍥句功棣?, "鏈熸湯鑰?, "鏍″洯缃?, "濂栧閲?, "杩愬姩浼?, "閫夎", "绀惧洟", "瀹胯垗", "鑰冪爺", "灏变笟", "璁插骇", "鏍″簡", "瀹夊叏", "鏁欏妤?]
+LIVE_KEYWORDS = ["椋熷爞", "鍥句功棣", "鏈熸湯鑰", "鏍″洯缃", "濂栧閲", "杩愬姩浼", "閫夎", "绀惧洟", "瀹胯垗", "鑰冪爺", "灏变笟", "璁插骇", "鏍″簡", "瀹夊叏", "鏁欏妤"]
 
 LIVE_POS = [
 
-    "瀛︽牎{kw}鍋氬緱寰堜笉閿欙紝鍊煎緱琛ㄦ壃锛?, "浠婂ぉ{kw}浣撻獙寰堝ソ锛岀偣璧烇紒", "瀵箋kw}寰堟弧鎰忥紝缁х画淇濇寔銆?,
+    "瀛︽牎{kw}鍋氬緱寰堜笉閿欙紝鍊煎緱琛ㄦ壃锛", "浠婂ぉ{kw}浣撻獙寰堝ソ锛岀偣璧烇紒", "瀵箋kw}寰堟弧鎰忥紝缁х画淇濇寔銆",
 
-    "{kw}瓒婃潵瓒婂ソ浜嗭紝寰堝紑蹇冿紒", "鏀寔瀛︽牎鐨剓kw}鍐冲畾銆?, "{kw}鐨勬敼杩涢潪甯告槑鏄俱€?,
+    "{kw}瓒婃潵瓒婂ソ浜嗭紝寰堝紑蹇冿紒", "鏀寔瀛︽牎鐨剓kw}鍐冲畾銆", "{kw}鐨勬敼杩涢潪甯告槑鏄俱",
 
 ]
 
 LIVE_NEG = [
 
-    "{kw}鍙堝嚭闂浜嗭紝鏃犺銆?, "瀵箋kw}鐪熺殑寰堝け鏈涖€?, "{kw}浠€涔堟椂鍊欒兘瑙ｅ喅锛?,
+    "{kw}鍙堝嚭闂浜嗭紝鏃犺銆", "瀵箋kw}鐪熺殑寰堝け鏈涖", "{kw}浠涔堟椂鍊欒兘瑙ｅ喅锛",
 
-    "{kw}瀹炲湪澶樊浜嗭紒", "鎶曡瘔浜唟kw}娌′汉绠°€?, "蹇嶄笉浜唟kw}浜嗐€?,
+    "{kw}瀹炲湪澶樊浜嗭紒", "鎶曡瘔浜唟kw}娌′汉绠°", "蹇嶄笉浜唟kw}浜嗐",
 
 ]
 
 LIVE_NEU = [
 
-    "鍏充簬{kw}鐨勯€氱煡宸插彂甯冦€?, "{kw}鐨勬渶鏂版秷鎭潵浜嗐€?, "鏈変簡瑙kw}鎯呭喌鐨勫悧锛?,
+    "鍏充簬{kw}鐨勯氱煡宸插彂甯冦", "{kw}鐨勬渶鏂版秷鎭潵浜嗐", "鏈変簡瑙kw}鎯呭喌鐨勫悧锛",
 
-    "{kw}鐩稿叧閫氱煡璇锋煡鏀躲€?, "{kw}鍚庣画鍙戝睍鍏虫敞涓€?,
+    "{kw}鐩稿叧閫氱煡璇锋煡鏀躲", "{kw}鍚庣画鍙戝睍鍏虫敞涓",
 
 ]
 
@@ -663,7 +663,7 @@ LIVE_NEU = [
 
 async def live_stream(request: Request):
 
-    """SSE瀹炴椂鑸嗘儏鎺ㄩ€?- 姣?-5绉掓帹涓€鏉℃ā鎷熸暟鎹?""
+    """SSE real-time opinion stream"""
 
 
 
@@ -749,13 +749,13 @@ async def live_stream(request: Request):
 
 
 
-# 鈹€鈹€ SPA fallback 鈥?蹇呴』鏀惧湪鎵€鏈夎矾鐢辨渶鍚?鈹€鈹€
+# 鈹鈹 SPA fallback 鈥?蹇呴』鏀惧湪鎵鏈夎矾鐢辨渶鍚?鈹鈹
 
 @app.get("/{full_path:path}")
 
 async def serve_frontend(full_path: str):
 
-    """SPA fallback 鈥?鎵€鏈夐潪API/闈為潤鎬佽矾寰勮繑鍥?index.html"""
+    """SPA fallback - serve index.html for non-API routes"""
 
     if full_path.startswith("api/"):
 
