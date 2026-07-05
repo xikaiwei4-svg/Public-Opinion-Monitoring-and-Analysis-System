@@ -34,6 +34,7 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: 22
           envs: PROD_DB_PASSWORD,PROD_SECRET_KEY
+          command_timeout: "30m"
           script: |
             set -e
             cd /opt/campus-opinion
@@ -46,11 +47,17 @@ jobs:
             DEBUG=False
             ENVEOF
 
-            echo "📦 构建并启动服务..."
-            docker compose \
-              -f docker-compose.yml \
-              --env-file /tmp/campus-env \
-              up -d --build
+            echo "📦 拉取基础镜像..."
+            docker compose -f docker-compose.yml pull mysql redis 2>/dev/null || true
+
+            echo "🔨 构建后端镜像..."
+            docker compose -f docker-compose.yml build backend
+
+            echo "🔨 构建前端镜像..."
+            docker compose -f docker-compose.yml build frontend
+
+            echo "🚀 启动服务..."
+            docker compose -f docker-compose.yml --env-file /tmp/campus-env up -d
 
             rm /tmp/campus-env
 
