@@ -94,3 +94,15 @@ export const clearCollection = async (collectionName: string) => {
   const response = await api.delete(`/api/database/collections/${collectionName}/clear`)
   return response.data
 }
+
+// 获取舆情列表（分页）
+export const getOpinions = async (skip: number = 0, limit: number = 20) => {
+  const response = await api.get(`/api/opinions?skip=${skip}&limit=${limit}`)
+  return response.data
+}
+
+// 获取舆情列表（带总数）
+export const getOpinionsWithTotal = async (skip: number = 0, limit: number = 20) => {
+  const response = await api.get(`/api/opinions?skip=${skip}&limit=${limit}`)
+  return response.data
+}
