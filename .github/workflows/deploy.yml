@@ -33,6 +33,7 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: 22
+          envs: PROD_DB_PASSWORD,PROD_SECRET_KEY
           script: |
             set -e
             cd /opt/campus-opinion
