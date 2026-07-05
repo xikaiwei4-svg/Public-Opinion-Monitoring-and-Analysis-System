@@ -2,7 +2,6 @@ import { configureStore } from '@reduxjs/toolkit'
 import opinionReducer from './features/opinionSlice'
 import hotTopicReducer from './features/hotTopicSlice'
 import trendReducer from './features/trendSlice'
-import userReducer from './features/userSlice'
 
 // 创建Redux store
 export const store = configureStore({
@@ -10,7 +9,6 @@ export const store = configureStore({
     opinion: opinionReducer,
     hotTopic: hotTopicReducer,
     trend: trendReducer,
-    user: userReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

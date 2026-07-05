@@ -3,9 +3,6 @@ import { Routes, Route } from 'react-router-dom'
 import { ConfigProvider, Spin } from 'antd'
 import zhCN from 'antd/locale/zh_CN'
 import Layout from './components/Layout'
-
-import LoginPage from './pages/LoginPage'
-import RegisterPage from './pages/RegisterPage'
 import NotFound from './pages/NotFound'
 
 // 懒加载重量级页面
@@ -47,8 +44,6 @@ const App: React.FC = () => (
     }}
   >
     <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
       <Route path="/" element={<Layout />}>
         <Route index element={<Suspense fallback={<PageLoader />}><Dashboard /></Suspense>} />
         <Route path="opinion/list" element={<Suspense fallback={<PageLoader />}><OpinionListPage /></Suspense>} />

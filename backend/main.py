@@ -71,7 +71,6 @@ _startup_start = 0.0
 
 
 from routers.health_router import router as health_router
-from auth.auth_router import auth_router
 
 from routers.mysql_database_router import router as database_router
 
@@ -145,7 +144,6 @@ app.add_middleware(
 
 
 app.include_router(health_router)
-app.include_router(auth_router)
 
 app.include_router(database_router)
 
