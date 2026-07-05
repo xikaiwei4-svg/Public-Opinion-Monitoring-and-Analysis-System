@@ -25,13 +25,13 @@ export const getCollections = async () => {
 
 // 获取集合详情
 export const getCollectionDetail = async (collectionName: string) => {
-  const response = await api.get(/api/database/collections/)
+  const response = await api.get(`/api/database/collections/${collectionName}`)
   return response.data
 }
 
 // 删除集合
 export const deleteCollection = async (collectionName: string) => {
-  const response = await api.delete(/api/database/collections/)
+  const response = await api.delete(`/api/database/collections/${collectionName}`)
   return response.data
 }
 
@@ -49,7 +49,7 @@ export const runCrawler = async (platform: string = 'all', keywords?: string[]) 
 
 // 获取爬虫任务状态
 export const getCrawlerTaskStatus = async (taskId: string) => {
-  const response = await api.get(/api/database/crawler/task/)
+  const response = await api.get(`/api/database/crawler/task/${taskId}`)
   return response.data
 }
 
@@ -61,25 +61,25 @@ export const addDatabaseConfig = async (config: any) => {
 
 // 更新数据库配置
 export const updateDatabaseConfig = async (id: string, config: any) => {
-  const response = await api.put(/api/database/config/, config)
+  const response = await api.put(`/api/database/config/${id}`, config)
   return response.data
 }
 
 // 删除数据库配置
 export const removeDatabaseConfig = async (id: string) => {
-  const response = await api.delete(/api/database/config/)
+  const response = await api.delete(`/api/database/config/${id}`)
   return response.data
 }
 
 // 获取数据库统计
 export const getDatabaseStatsDetail = async (days: number = 7) => {
-  const response = await api.get(/api/database/stats?days=)
+  const response = await api.get(`/api/database/stats?days=${days}`)
   return response.data
 }
 
 // 获取数据库日志
 export const getDatabaseLogs = async (page: number = 1, pageSize: number = 20) => {
-  const response = await api.get(/api/database/logs?page=&pageSize=)
+  const response = await api.get(`/api/database/logs?page=${page}&pageSize=${pageSize}`)
   return response.data
 }
 
@@ -91,6 +91,6 @@ export const initDatabase = async () => {
 
 // 删除集合中的所有文档
 export const clearCollection = async (collectionName: string) => {
-  const response = await api.delete(/api/database/collections//clear)
+  const response = await api.delete(`/api/database/collections/${collectionName}/clear`)
   return response.data
 }
