@@ -31,6 +31,7 @@ on:
 
 env:
   REGISTRY_ENDPOINT: ${{ secrets.REGISTRY_ENDPOINT }}
+  REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
 
 jobs:
 
@@ -64,8 +65,8 @@ jobs:
           file: backend/Dockerfile
           push: true
           tags: |
-            ${{ secrets.REGISTRY_ENDPOINT }}/campus-backend:${{ github.sha }}
-            ${{ secrets.REGISTRY_ENDPOINT }}/campus-backend:latest
+            ${{ secrets.REGISTRY_ENDPOINT }}/${{ secrets.REGISTRY_USERNAME }}/campus-backend:${{ github.sha }}
+            ${{ secrets.REGISTRY_ENDPOINT }}/${{ secrets.REGISTRY_USERNAME }}/campus-backend:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -76,8 +77,8 @@ jobs:
           file: frontend/Dockerfile
           push: true
           tags: |
-            ${{ secrets.REGISTRY_ENDPOINT }}/campus-frontend:${{ github.sha }}
-            ${{ secrets.REGISTRY_ENDPOINT }}/campus-frontend:latest
+            ${{ secrets.REGISTRY_ENDPOINT }}/${{ secrets.REGISTRY_USERNAME }}/campus-frontend:${{ github.sha }}
+            ${{ secrets.REGISTRY_ENDPOINT }}/${{ secrets.REGISTRY_USERNAME }}/campus-frontend:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -112,7 +113,7 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: 22
           # 将 GitHub 环境变量透传到远程 SSH 会话
-          envs: REGISTRY_ENDPOINT,GIT_SHA,PROD_DB_PASSWORD,PROD_SECRET_KEY
+          envs: REGISTRY_ENDPOINT,REGISTRY_USERNAME,GIT_SHA,PROD_DB_PASSWORD,PROD_SECRET_KEY
           script: |
             set -e
 
@@ -138,7 +139,7 @@ jobs:
             # ── 4) 拉取最新镜像 ──
             echo "📦 拉取最新镜像..."
             cd $DEPLOY_DIR
-            REGISTRY_ENDPOINT=$REGISTRY_ENDPOINT TAG=$GIT_SHA \
+            REGISTRY_ENDPOINT=$REGISTRY_ENDPOINT REGISTRY_USERNAME=$REGISTRY_USERNAME TAG=$GIT_SHA \
               docker compose \
               -f docker-compose.yml \
               -f deploy/docker-compose.prod.yml \
@@ -147,7 +148,7 @@ jobs:
 
             # ── 5) 重启服务 ──
             echo "🚀 重启服务..."
-            REGISTRY_ENDPOINT=$REGISTRY_ENDPOINT TAG=$GIT_SHA \
+            REGISTRY_ENDPOINT=$REGISTRY_ENDPOINT REGISTRY_USERNAME=$REGISTRY_USERNAME TAG=$GIT_SHA \
               docker compose \
               -f docker-compose.yml \
               -f deploy/docker-compose.prod.yml \
@@ -173,6 +174,7 @@ jobs:
 
         env:
           REGISTRY_ENDPOINT: ${{ secrets.REGISTRY_ENDPOINT }}
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
           GIT_SHA: ${{ github.sha }}
           PROD_DB_PASSWORD: ${{ secrets.PROD_DB_PASSWORD }}
           PROD_SECRET_KEY: ${{ secrets.PROD_SECRET_KEY }}

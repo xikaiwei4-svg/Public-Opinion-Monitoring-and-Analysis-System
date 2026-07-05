@@ -46,7 +46,7 @@ services:
 
   backend:
     # 从镜像仓库拉取（不在本地构建）
-    image: ${REGISTRY_ENDPOINT:?REGISTRY_ENDPOINT 未设置}/campus-backend:${TAG:-latest}
+    image: ${REGISTRY_ENDPOINT:?REGISTRY_ENDPOINT 未设置}/${REGISTRY_USERNAME:?REGISTRY_USERNAME 未设置}/campus-backend:${TAG:-latest}
     restart: always
     mem_limit: 2g
     logging:
@@ -62,7 +62,7 @@ services:
 
   frontend:
     # 从镜像仓库拉取
-    image: ${REGISTRY_ENDPOINT:?REGISTRY_ENDPOINT 未设置}/campus-frontend:${TAG:-latest}
+    image: ${REGISTRY_ENDPOINT:?REGISTRY_ENDPOINT 未设置}/${REGISTRY_USERNAME:?REGISTRY_USERNAME 未设置}/campus-frontend:${TAG:-latest}
     restart: always
     mem_limit: 256m
     logging:
