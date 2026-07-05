@@ -1,4 +1,4 @@
-﻿"""pytest 共享 fixtures"""
+"""pytest 共享 fixtures"""
 import os
 import sys
 from typing import Generator

@@ -1,4 +1,4 @@
-﻿"""Redis缓存模块 - 缓存优先策略 (Cache-Aside Pattern)"""
+"""Redis缓存模块 - 缓存优先策略 (Cache-Aside Pattern)"""
 import json
 import redis
 import hashlib

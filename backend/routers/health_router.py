@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 健康检查端点 — 供 Docker healthcheck 和外部监控工具使用
 无需认证即可访问
