@@ -122,8 +122,7 @@ services:
       retries: 3
       start_period: 30s  # 等 ML 模型加载完
     volumes:
-      # 绑定挂载 — ML 模型文件实时生效，热更新只需替换文件
-      - ./backend/ml:/app/ml
+      # ML 模型已构建在镜像中，无需挂载
     logging:
       driver: json-file
       options:
