@@ -143,6 +143,7 @@ jobs:
               docker compose \
               -f docker-compose.yml \
               -f deploy/docker-compose.prod.yml \
+              --env-file /tmp/campus-env \
               pull
             echo "   镜像已就绪 ✓"
 
