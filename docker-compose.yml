@@ -121,8 +121,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s  # 等 ML 模型加载完
-    volumes:
-      # ML 模型已构建在镜像中，无需挂载
     logging:
       driver: json-file
       options:
