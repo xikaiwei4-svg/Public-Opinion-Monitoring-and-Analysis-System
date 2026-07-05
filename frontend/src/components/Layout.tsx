@@ -3,8 +3,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { Layout as AntLayout, Menu, Avatar, Dropdown, Badge, Typography } from 'antd'
 import {
   DashboardOutlined, MessageOutlined, FireOutlined, LineChartOutlined,
-  UserOutlined, DatabaseOutlined, BellOutlined, LogoutOutlined,
-  ExperimentOutlined, AppstoreOutlined,
+  BellOutlined, LogoutOutlined, UserOutlined,
 } from '@ant-design/icons'
 import Footer from './Footer'
 import './Layout.css'
@@ -17,8 +16,6 @@ const menuItems = [
   { key: '/opinion/list', icon: <MessageOutlined />, label: '舆情管理' },
   { key: '/hot-topic/list', icon: <FireOutlined />, label: '热点话题' },
   { key: '/trend-analysis', icon: <LineChartOutlined />, label: '趋势分析' },
-  { key: '/database/manage', icon: <DatabaseOutlined />, label: '数据库' },
-  { key: '/user/manage', icon: <UserOutlined />, label: '用户管理' },
 ]
 
 const Layout: React.FC = () => {

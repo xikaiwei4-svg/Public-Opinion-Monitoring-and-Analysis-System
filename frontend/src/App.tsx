@@ -7,15 +7,12 @@ import Layout from './components/Layout'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import NotFound from './pages/NotFound'
-import SettingsPage from './pages/SettingsPage'
 
 // 懒加载重量级页面
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const OpinionListPage = lazy(() => import('./pages/OpinionListPage'))
 const HotTopicListPage = lazy(() => import('./pages/HotTopicListPage'))
 const TrendAnalysisPage = lazy(() => import('./pages/TrendAnalysisPage'))
-const UserManagementPage = lazy(() => import('./pages/UserManagementPage'))
-const DatabaseManagePage = lazy(() => import('./pages/DatabaseManagePage'))
 
 const PageLoader = () => (
   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
@@ -57,9 +54,6 @@ const App: React.FC = () => (
         <Route path="opinion/list" element={<Suspense fallback={<PageLoader />}><OpinionListPage /></Suspense>} />
         <Route path="hot-topic/list" element={<Suspense fallback={<PageLoader />}><HotTopicListPage /></Suspense>} />
         <Route path="trend-analysis" element={<Suspense fallback={<PageLoader />}><TrendAnalysisPage /></Suspense>} />
-        <Route path="user/manage" element={<Suspense fallback={<PageLoader />}><UserManagementPage /></Suspense>} />
-        <Route path="database/manage" element={<Suspense fallback={<PageLoader />}><DatabaseManagePage /></Suspense>} />
-        <Route path="settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
