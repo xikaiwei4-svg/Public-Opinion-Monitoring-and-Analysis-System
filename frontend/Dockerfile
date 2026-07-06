@@ -9,7 +9,9 @@ FROM node:18-alpine AS build
 
 WORKDIR /app
 
-# 先装依赖（利用 Docker 层缓存）
+# 用淘宝镜像加速 npm
+RUN npm config set registry https://registry.npmmirror.com
+
 COPY package*.json ./
 RUN npm ci
 

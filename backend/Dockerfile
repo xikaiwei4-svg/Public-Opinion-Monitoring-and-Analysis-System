@@ -1,25 +1,24 @@
-# backend/Dockerfile
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies for torch, jieba, and mysql client
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# 用清华镜像源加速 apt
+RUN sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list.d/debian.sources && \
+    apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     curl \
     libmariadb-dev-compat \
     libmariadb-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for layer caching
+# 用清华镜像加速 pip
+RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the entire backend directory
 COPY . .
 
-# Expose port
 EXPOSE 8000
 
-# Use uvicorn with 4 workers for production
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
