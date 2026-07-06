@@ -285,11 +285,11 @@ async def startup_event():
 
 
 
-    for key, func in warmup_map.items():
+    for key, warmup_fn in warmup_map.items():
 
         try:
 
-            data = func()
+            data = warmup_fn()
 
             if data:
 
