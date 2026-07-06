@@ -625,32 +625,34 @@ async def get_keyword_cloud():
 
 
 
-LIVE_PLATFORMS = ["寰崥", "寰俊", "鐭ヤ箮", "鏂版氮鏁欒偛", "鎼滅嫄鏁欒偛", "涓浗鏁欒偛鍦ㄧ嚎", "楂樿冪綉"]
+LIVE_PLATFORMS = ["Weibo", "WeChat", "Zhihu", "Douyin", "Bilibili", "Xiaohongshu", "Toutiao"]
 
-LIVE_KEYWORDS = ["椋熷爞", "鍥句功棣", "鏈熸湯鑰", "鏍″洯缃", "濂栧閲", "杩愬姩浼", "閫夎", "绀惧洟", "瀹胯垗", "鑰冪爺", "灏变笟", "璁插骇", "鏍″簡", "瀹夊叏", "鏁欏妤"]
+LIVE_KEYWORDS = ["cafeteria", "library", "exam", "campus", "scholarship", "sports", "election", "club", "dorm", "postgrad", "career", "lecture", "safety", "facility"]
 
 LIVE_POS = [
-
-    "瀛︽牎{kw}鍋氬緱寰堜笉閿欙紝鍊煎緱琛ㄦ壃锛", "浠婂ぉ{kw}浣撻獙寰堝ソ锛岀偣璧烇紒", "瀵箋kw}寰堟弧鎰忥紝缁х画淇濇寔銆",
-
-    "{kw}瓒婃潵瓒婂ソ浜嗭紝寰堝紑蹇冿紒", "鏀寔瀛︽牎鐨剓kw}鍐冲畾銆", "{kw}鐨勬敼杩涢潪甯告槑鏄俱",
-
+    "{kw} is doing great, thumbs up!",
+    "Very satisfied with {kw}, keep it up!",
+    "{kw} has improved a lot!",
+    "Support the decision on {kw}.",
+    "{kw} experience was excellent today!",
+    "The improvement on {kw} is noticeable.",
 ]
 
 LIVE_NEG = [
-
-    "{kw}鍙堝嚭闂浜嗭紝鏃犺銆", "瀵箋kw}鐪熺殑寰堝け鏈涖", "{kw}浠涔堟椂鍊欒兘瑙ｅ喅锛",
-
-    "{kw}瀹炲湪澶樊浜嗭紒", "鎶曡瘔浜唟kw}娌′汉绠°", "蹇嶄笉浜唟kw}浜嗐",
-
+    "{kw} has issues again, speechless.",
+    "Really disappointed with {kw}.",
+    "When will {kw} be fixed?",
+    "{kw} is terrible!",
+    "Complained about {kw}, no one cares.",
+    "Can't stand {kw} anymore.",
 ]
 
 LIVE_NEU = [
-
-    "鍏充簬{kw}鐨勯氱煡宸插彂甯冦", "{kw}鐨勬渶鏂版秷鎭潵浜嗐", "鏈変簡瑙kw}鎯呭喌鐨勫悧锛",
-
-    "{kw}鐩稿叧閫氱煡璇锋煡鏀躲", "{kw}鍚庣画鍙戝睍鍏虫敞涓",
-
+    "Notification about {kw} has been posted.",
+    "Latest news about {kw} is here.",
+    "Any updates on {kw}?",
+    "Check the notice about {kw}.",
+    "Following up on {kw} developments.",
 ]
 
 
