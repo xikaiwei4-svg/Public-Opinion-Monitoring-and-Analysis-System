@@ -625,34 +625,34 @@ async def get_keyword_cloud():
 
 
 
-LIVE_PLATFORMS = ["Weibo", "WeChat", "Zhihu", "Douyin", "Bilibili", "Xiaohongshu", "Toutiao"]
+LIVE_PLATFORMS = ["微博", "微信", "知乎", "抖音", "B站", "小红书", "头条"]
 
-LIVE_KEYWORDS = ["cafeteria", "library", "exam", "campus", "scholarship", "sports", "election", "club", "dorm", "postgrad", "career", "lecture", "safety", "facility"]
+LIVE_KEYWORDS = ["食堂", "图书馆", "期末考试", "校园网", "奖学金", "运动会", "选修课", "社团", "宿舍", "考研", "就业", "讲座", "校庆", "安全"]
 
 LIVE_POS = [
-    "{kw} is doing great, thumbs up!",
-    "Very satisfied with {kw}, keep it up!",
-    "{kw} has improved a lot!",
-    "Support the decision on {kw}.",
-    "{kw} experience was excellent today!",
-    "The improvement on {kw} is noticeable.",
+    "今天{kw}体验太好了，给学校点赞！",
+    "对{kw}非常满意，继续保持！",
+    "{kw}越来越好了，真开心！",
+    "支持学校关于{kw}的决定！",
+    "{kw}改进很明显，棒！",
+    "这次{kw}做得不错！",
 ]
 
 LIVE_NEG = [
-    "{kw} has issues again, speechless.",
-    "Really disappointed with {kw}.",
-    "When will {kw} be fixed?",
-    "{kw} is terrible!",
-    "Complained about {kw}, no one cares.",
-    "Can't stand {kw} anymore.",
+    "{kw}又出问题了，无语",
+    "对{kw}真的很失望",
+    "{kw}什么时候能解决？",
+    "{kw}实在太差了！",
+    "投诉了{kw}没人管",
+    "忍不了{kw}了",
 ]
 
 LIVE_NEU = [
-    "Notification about {kw} has been posted.",
-    "Latest news about {kw} is here.",
-    "Any updates on {kw}?",
-    "Check the notice about {kw}.",
-    "Following up on {kw} developments.",
+    "关于{kw}的通知已发布",
+    "{kw}最新消息来了",
+    "有了解{kw}情况的吗？",
+    "{kw}相关通知请查收",
+    "{kw}后续发展关注中",
 ]
 
 
