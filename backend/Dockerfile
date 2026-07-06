@@ -2,9 +2,8 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# 用清华镜像源加速 apt
-RUN sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list.d/debian.sources && \
-    apt-get update && apt-get install -y --no-install-recommends \
+# 安装系统依赖（包很小，不用换源）
+RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     curl \
     libmariadb-dev-compat \
