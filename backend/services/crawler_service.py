@@ -29,29 +29,30 @@ CONSUMER_NAME = "consumer-1"
 # ── 真实数据源配置 ──
 
 NEWS_SOURCES = [
-    {
-        "name": "人民网教育",
-        "url": "http://edu.people.com.cn/",
-        "platform": "people_edu",
-        # 人民网教育新闻链接格式: /n1/YYYY/MMDD/c1006-XXXXXX.html
-        "link_pattern": r"/n1/\d{4}/\d{4}/c\d+-\d+\.html",
-        "date_in_url": True,
-    },
-    {
-        "name": "新浪教育",
-        "url": "https://edu.sina.com.cn/",
-        "platform": "sina_edu",
-        # 新浪教育链接含 /doc-/, /ischool/, /original/
-        "link_pattern": r"edu\.sina\.com\.cn/(doc-|ischool/|original/)",
-        "date_in_url": False,
-    },
-    {
-        "name": "中国教育在线",
-        "url": "https://www.eol.cn/news/",
-        "platform": "eol",
-        "link_pattern": r"eol\.cn/(news|gaokao|kaoyan|jiuye)/",
-        "date_in_url": False,
-    },
+    {"name": "人民网教育", "url": "http://edu.people.com.cn/", "platform": "people_edu",
+     "link_pattern": r"/n1/\d{4}/\d{4}/c\d+-\d+\.html", "date_in_url": True},
+    {"name": "新浪教育", "url": "https://edu.sina.com.cn/", "platform": "sina_edu",
+     "link_pattern": r"edu\.sina\.com\.cn/(ischool|gaokao|kaoyan|original|doc-)", "date_in_url": False},
+    {"name": "中国教育在线", "url": "https://www.eol.cn/news/", "platform": "eol",
+     "link_pattern": r"eol\.cn/(news|gaokao|kaoyan|jiuye)/", "date_in_url": False},
+    {"name": "教育部", "url": "http://www.moe.gov.cn/jyb_xwfb/", "platform": "moe",
+     "link_pattern": r"moe\.gov\.cn/jyb_xwfb/.*\.html", "date_in_url": True},
+    {"name": "网易教育", "url": "https://edu.163.com/", "platform": "163_edu",
+     "link_pattern": r"edu\.163\.com/\d{2}/\d{4}/\d{2}/", "date_in_url": True},
+    {"name": "搜狐教育", "url": "https://learning.sohu.com/", "platform": "sohu_edu",
+     "link_pattern": r"learning\.sohu\.com/\d{8}/", "date_in_url": True},
+    {"name": "腾讯教育", "url": "https://edu.qq.com/", "platform": "qq_edu",
+     "link_pattern": r"edu\.qq\.com/a/\d{8}/", "date_in_url": True},
+    {"name": "凤凰教育", "url": "https://edu.ifeng.com/", "platform": "ifeng_edu",
+     "link_pattern": r"edu\.ifeng\.com/c/", "date_in_url": False},
+    {"name": "光明教育", "url": "https://edu.gmw.cn/", "platform": "gmw_edu",
+     "link_pattern": r"edu\.gmw\.cn/\d{4}-\d{2}/\d{2}/", "date_in_url": True},
+    {"name": "芥末堆", "url": "https://www.jiemodui.com/", "platform": "jiemodui",
+     "link_pattern": r"jiemodui\.com/[A-Z]/\d+\.html", "date_in_url": False},
+    {"name": "中国网教育", "url": "http://edu.china.com.cn/", "platform": "china_edu",
+     "link_pattern": r"edu\.china\.com\.cn/\d{4}-\d{2}/\d{2}/", "date_in_url": True},
+    {"name": "中国青年网教育", "url": "http://edu.youth.cn/", "platform": "youth_edu",
+     "link_pattern": r"edu\.youth\.cn/[a-z]+/\d{4}/\d{4}/", "date_in_url": True},
 ]
 
 # ── 高校/教育关键词（用于判断文章是否与校园相关）──

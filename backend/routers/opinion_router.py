@@ -14,6 +14,9 @@ PLATFORM_MAP = {
     "weibo": "微博", "wechat": "微信", "zhihu": "知乎",
     "sina": "新浪教育", "eol": "中国教育在线", "jyb": "中国教育新闻网",
     "people_edu": "人民网教育", "sina_edu": "新浪教育",
+    "moe": "教育部", "163_edu": "网易教育", "sohu_edu": "搜狐教育",
+    "qq_edu": "腾讯教育", "ifeng_edu": "凤凰教育", "gmw_edu": "光明教育",
+    "jiemodui": "芥末堆", "china_edu": "中国网教育", "youth_edu": "中国青年网",
     "youth": "中国青年网", "sohu": "搜狐教育", "163": "网易教育",
     "ifeng": "凤凰教育", "qq": "腾讯教育",
     "gx211": "中国高校之窗", "gxzs": "高校招生网",
@@ -101,7 +104,7 @@ async def get_opinion_list(
         if is_sensitive is not None:
             query = query.filter(Opinion.is_hot == is_sensitive)
         total = query.count()
-        opinions = query.offset((page - 1) * pageSize).limit(pageSize).all()
+        opinions = query.order_by(Opinion.publish_time.desc()).offset((page - 1) * pageSize).limit(pageSize).all()
         items = []
         for o in opinions:
             plat_name = PLATFORM_MAP.get(o.source_platform, o.source_platform or "其他")
