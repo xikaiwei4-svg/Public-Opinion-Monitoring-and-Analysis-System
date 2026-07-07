@@ -2,7 +2,7 @@
 """爬虫调度 API"""
 
 from fastapi import APIRouter
-from services.crawler_service import scheduler, generate_opinion, push_to_stream, consume_stream
+from services.crawler_service import scheduler, fetch_all_real_news, push_to_stream, consume_stream
 
 router = APIRouter(prefix="/api/crawler", tags=["爬虫调度"])
 
@@ -31,8 +31,13 @@ async def crawler_stop():
 
 @router.post("/trigger")
 async def crawler_trigger():
-    """手动触发一轮采集"""
-    batch = [generate_opinion() for _ in range(10)]
-    pushed = push_to_stream(batch)
-    consumed = consume_stream(batch_size=20)
-    return {"pushed": pushed, "consumed": consumed, "message": f"已推送 {pushed} 条，入库 {consumed} 条"}
+    """手动触发一轮真实新闻采集"""
+    items = await fetch_all_real_news()
+    pushed = push_to_stream(items) if items else 0
+    consumed = consume_stream(batch_size=50)
+    return {
+        "pushed": pushed,
+        "consumed": consumed,
+        "scraped": len(items) if items else 0,
+        "message": f"采集 {len(items) if items else 0} 条，推送 {pushed} 条，入库 {consumed} 条",
+    }
