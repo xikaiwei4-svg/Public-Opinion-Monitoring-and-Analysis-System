@@ -13,6 +13,7 @@ router = APIRouter(prefix="/api/opinion", tags=["舆情数据"])
 PLATFORM_MAP = {
     "weibo": "微博", "wechat": "微信", "zhihu": "知乎",
     "sina": "新浪教育", "eol": "中国教育在线", "jyb": "中国教育新闻网",
+    "people_edu": "人民网教育", "sina_edu": "新浪教育",
     "youth": "中国青年网", "sohu": "搜狐教育", "163": "网易教育",
     "ifeng": "凤凰教育", "qq": "腾讯教育",
     "gx211": "中国高校之窗", "gxzs": "高校招生网",
