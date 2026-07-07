@@ -85,6 +85,7 @@ from routers.hot_topic_router import router as hot_topic_router
 from routers.trend_router import router as trend_router
 from routers.keyword_router import router as keyword_router
 from routers.report_router import router as report_router
+from routers.crawler_router import router as crawler_router
 
 
 
@@ -160,6 +161,7 @@ app.include_router(hot_topic_router)
 app.include_router(trend_router)
 app.include_router(keyword_router)
 app.include_router(report_router)
+app.include_router(crawler_router)
 
 
 # 鈹鈹 闈欐佹枃浠讹紙鐢熶骇鍓嶇鏋勫缓浜х墿锛夆攢鈹
@@ -309,6 +311,14 @@ async def startup_event():
 
     logger.info(f"绯荤粺鍚姩瀹屾垚 ({time.time() - _startup_start:.1f}s) - Redis: {'鍙敤' if redis_cache.available else '鍐呭瓨妯″紡'} | BERT: 寤惰繜鍔犺浇")
 
+    # ── 启动舆情爬虫调度器 ──
+    try:
+        from services.crawler_service import scheduler
+        scheduler.start()
+        logger.info("舆情爬虫调度器已启动（每5-10分钟自动采集）")
+    except Exception as e:
+        logger.warning(f"爬虫调度器启动失败: {e}")
+
 
 
 
@@ -316,7 +326,8 @@ async def startup_event():
 @app.on_event("shutdown")
 
 async def shutdown_event():
-
+    from services.crawler_service import scheduler
+    scheduler.stop()
     logger.info("绯荤粺鍏抽棴涓?..")
 
 
