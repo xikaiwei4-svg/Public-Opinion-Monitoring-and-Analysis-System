@@ -605,7 +605,26 @@ async def run_report_agent(report_type: str = "weekly") -> Optional[dict]:
         db.add(report)
         db.commit()
         db.refresh(report)
-        return report.to_dict()
+        result = report.to_dict()
+
+        # ── 推送到微信（Server酱）──
+        sct_key = os.getenv("SCT_KEY", "")
+        if sct_key:
+            try:
+                type_label = {"weekly": "周报", "monthly": "月报", "daily": "日报"}.get(report_type, "报告")
+                async with httpx.AsyncClient(timeout=15) as push_client:
+                    await push_client.post(
+                        "https://sctapi.ftqq.com/%s.send" % sct_key,
+                        data={
+                            "title": "校园舆情%s｜%s" % (type_label, now.strftime("%m.%d")),
+                            "desp": report_content[:8000],
+                        },
+                    )
+                logger.info("微信推送成功")
+            except Exception as e:
+                logger.warning("微信推送失败: %s", e)
+
+        return result
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to save report: {e}")
