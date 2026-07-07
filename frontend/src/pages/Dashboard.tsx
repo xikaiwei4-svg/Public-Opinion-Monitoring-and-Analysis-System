@@ -112,7 +112,7 @@ function Dashboard() {
         <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
           <Col xs={24} lg={14}>
             <Card className="content-card" title={<span style={{ fontWeight: 600 }}>🔥 热点词云</span>}>
-              <WordCloud height={380} />
+              <WordCloud height={380} days={Number(selectedDays)} />
             </Card>
           </Col>
           <Col xs={24} lg={10}>

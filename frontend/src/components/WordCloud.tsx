@@ -4,6 +4,7 @@ import 'echarts-wordcloud'
 
 interface WordCloudProps {
   height?: number
+  days?: number
 }
 
 interface WordItem {
@@ -11,7 +12,7 @@ interface WordItem {
   value: number
 }
 
-function WordCloud({ height = 300 }: WordCloudProps) {
+function WordCloud({ height = 300, days = 7 }: WordCloudProps) {
   const chartRef = useRef<HTMLDivElement>(null)
   const chartInstance = useRef<echarts.ECharts | null>(null)
   const [loading, setLoading] = useState(true)
@@ -23,16 +24,7 @@ function WordCloud({ height = 300 }: WordCloudProps) {
       chartInstance.current = echarts.init(chartRef.current)
     }
 
-    // 先显示模拟数据，再异步加载真实数据
-    const mockWords: WordItem[] = [
-      { name: '食堂涨价', value: 520 },
-      { name: '图书馆', value: 450 },
-      { name: '期末考', value: 430 },
-      { name: '校园网', value: 380 },
-      { name: '奖学金', value: 350 },
-      { name: '运动会', value: 320 },
-    ]
-
+    // 先显示加载占位，再异步加载真实数据
     const renderChart = (words: WordItem[]) => {
       const option = {
         tooltip: {
@@ -77,18 +69,23 @@ function WordCloud({ height = 300 }: WordCloudProps) {
       chartInstance.current?.setOption(option, true)
     }
 
-    renderChart(mockWords)
-    setLoading(false)
+    // 显示加载占位
+    setLoading(true)
 
-    // 异步加载真实词云数据
-    fetch('/api/keywords/cloud')
+    // 加载真实词云数据（按选定天数）
+    const params = new URLSearchParams({ days: String(days) })
+    fetch(`/api/keywords/cloud?${params}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.words && data.words.length > 0) {
           renderChart(data.words)
         }
+        setLoading(false)
       })
-      .catch((err) => { console.warn('词云数据加载失败:', err) })
+      .catch((err) => {
+        console.warn('词云数据加载失败:', err)
+        setLoading(false)
+      })
 
     const handleResize = () => chartInstance.current?.resize()
     window.addEventListener('resize', handleResize)
@@ -96,7 +93,7 @@ function WordCloud({ height = 300 }: WordCloudProps) {
     return () => {
       window.removeEventListener('resize', handleResize)
     }
-  }, [])
+  }, [days])
 
   return (
     <div style={{ position: 'relative', minHeight: height }}>
