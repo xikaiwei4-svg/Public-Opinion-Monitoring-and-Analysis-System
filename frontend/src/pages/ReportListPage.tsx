@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Card, Table, Button, Tag, Space, message, Popconfirm, Select, Typography } from 'antd'
-import { PlusOutlined, EyeOutlined, DeleteOutlined, FileTextOutlined } from '@ant-design/icons'
+import { PlusOutlined, EyeOutlined, DeleteOutlined, FileTextOutlined, BranchesOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
+import { Card, Table, Button, Tag, Space, message, Popconfirm, Select, Typography, Input } from 'antd'
+import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import dayjs from 'dayjs'
 
 const { Title } = Typography
@@ -21,6 +21,7 @@ const typeMap: Record<string, { label: string; color: string }> = {
   monthly: { label: '月报', color: 'purple' },
   daily: { label: '日报', color: 'green' },
   manual: { label: '手动', color: 'default' },
+  trace: { label: '事件脉络', color: 'magenta' },
 }
 
 function ReportListPage() {
@@ -98,6 +99,24 @@ function ReportListPage() {
     },
   ]
 
+  const [traceKeyword, setTraceKeyword] = useState('')
+  const [tracing, setTracing] = useState(false)
+
+  const handleTrace = () => {
+    if (!traceKeyword.trim()) { message.warning('请输入追踪关键词'); return }
+    setTracing(true)
+    message.loading({ content: 'AI正在追溯事件脉络，请稍候...', key: 'trace', duration: 0 })
+    fetch(`/api/report/trace?keyword=${encodeURIComponent(traceKeyword)}`, { method: 'POST' })
+      .then(res => res.json())
+      .then(d => {
+        message.destroy('trace')
+        if (d.code === 200) { message.success('脉络分析完成！'); navigate(`/report/${d.data.id}`) }
+        else { message.error(d.detail || '分析失败') }
+      })
+      .catch(() => { message.destroy('trace'); message.error('分析失败') })
+      .finally(() => setTracing(false))
+  }
+
   return (
     <div>
       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -125,6 +144,21 @@ function ReportListPage() {
           locale={{ emptyText: <div style={{ padding: 40 }}><FileTextOutlined style={{ fontSize: 48, color: '#d9d9d9' }} /><div style={{ marginTop: 12, color: '#94a3b8' }}>暂无报告，点击上方按钮生成第一份</div></div> }}
           pagination={{ pageSize: 10, showSizeChanger: false }}
         />
+      </Card>
+
+      {/* 事件脉络追踪 */}
+      <Card className="content-card" style={{ marginTop: 20 }}
+        title={<Space><BranchesOutlined style={{ color: '#722ed1' }} /><span style={{ fontWeight: 600 }}>事件脉络追踪</span></Space>}>
+        <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 12 }}>输入关键词，AI 自动追溯话题的完整生命周期：潜伏期 → 爆发期 → 高峰期 → 衰退期</div>
+        <Space>
+          <Input placeholder="输入话题关键词，如：食堂、考研、宿舍..." value={traceKeyword}
+            onChange={e => setTraceKeyword(e.target.value)} onPressEnter={handleTrace}
+            style={{ width: 300 }} size="middle" />
+          <Button type="primary" icon={<BranchesOutlined />} loading={tracing} onClick={handleTrace}
+            style={{ background: '#722ed1', borderColor: '#722ed1' }}>
+            开始追踪
+          </Button>
+        </Space>
       </Card>
     </div>
   )

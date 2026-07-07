@@ -64,6 +64,21 @@ async def get_report(report_id: int):
         db.close()
 
 
+@router.post("/trace")
+async def generate_trace_report(keyword: str):
+    """生成事件脉络追踪报告"""
+    from services.trace_agent import run_trace_agent
+    try:
+        result = await run_trace_agent(keyword)
+        if not result:
+            raise HTTPException(status_code=500, detail="脉络分析失败，请检查 API Key")
+        return {"code": 200, "data": result, "message": "脉络分析完成"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"脉络分析异常: {str(e)}")
+
+
 @router.delete("/{report_id}")
 async def delete_report(report_id: int):
     """删除报告"""

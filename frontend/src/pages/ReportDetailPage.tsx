@@ -21,6 +21,7 @@ const typeMap: Record<string, { label: string; color: string }> = {
   monthly: { label: '月报', color: 'purple' },
   daily: { label: '日报', color: 'green' },
   manual: { label: '手动', color: 'default' },
+  trace: { label: '事件脉络', color: 'magenta' },
 }
 
 function ReportDetailPage() {
