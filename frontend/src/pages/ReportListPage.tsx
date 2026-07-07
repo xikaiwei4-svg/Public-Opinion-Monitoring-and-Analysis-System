@@ -1,4 +1,4 @@
-import { PlusOutlined, EyeOutlined, DeleteOutlined, FileTextOutlined, BranchesOutlined } from '@ant-design/icons'
+import { PlusOutlined, EyeOutlined, DeleteOutlined, FileTextOutlined, BranchesOutlined, AlertOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import { Card, Table, Button, Tag, Space, message, Popconfirm, Select, Typography, Input } from 'antd'
 import { useNavigate } from 'react-router-dom'
@@ -101,6 +101,21 @@ function ReportListPage() {
 
   const [traceKeyword, setTraceKeyword] = useState('')
   const [tracing, setTracing] = useState(false)
+  const [monitoring, setMonitoring] = useState(false)
+
+  const handleMonitor = () => {
+    setMonitoring(true)
+    message.loading({ content: 'AI正在执行全维度巡检...', key: 'monitor', duration: 0 })
+    fetch('/api/report/monitor', { method: 'POST' })
+      .then(res => res.json())
+      .then(d => {
+        message.destroy('monitor')
+        if (d.code === 200) { message.success('巡检完成，如有异常已推送微信'); fetchList() }
+        else { message.error(d.detail || '巡检失败') }
+      })
+      .catch(() => { message.destroy('monitor'); message.error('巡检失败') })
+      .finally(() => setMonitoring(false))
+  }
 
   const handleTrace = () => {
     if (!traceKeyword.trim()) { message.warning('请输入追踪关键词'); return }
@@ -129,6 +144,7 @@ function ReportListPage() {
             <Select.Option value="weekly">周报</Select.Option>
             <Select.Option value="monthly">月报</Select.Option>
           </Select>
+          <Button icon={<AlertOutlined />} loading={monitoring} onClick={handleMonitor} style={{ borderColor: '#fa8c16', color: '#fa8c16' }}>一键巡检</Button>
           <Button type="primary" icon={<PlusOutlined />} loading={generating} onClick={handleGenerate}>
             生成报告
           </Button>

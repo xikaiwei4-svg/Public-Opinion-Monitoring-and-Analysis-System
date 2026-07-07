@@ -79,6 +79,21 @@ async def generate_trace_report(keyword: str):
         raise HTTPException(status_code=500, detail=f"脉络分析异常: {str(e)}")
 
 
+@router.post("/monitor")
+async def run_alert_monitor():
+    """执行一次完整舆情巡检"""
+    from services.alert_agent import run_alert_agent
+    try:
+        result = await run_alert_agent()
+        if not result:
+            raise HTTPException(status_code=500, detail="巡检失败，请检查 API Key")
+        return {"code": 200, "data": result, "message": "巡检完成"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"巡检异常: {str(e)}")
+
+
 @router.delete("/{report_id}")
 async def delete_report(report_id: int):
     """删除报告"""
