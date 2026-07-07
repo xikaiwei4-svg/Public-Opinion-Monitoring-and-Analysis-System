@@ -84,6 +84,7 @@ from routers.hot_topic_router import router as hot_topic_router
 
 from routers.trend_router import router as trend_router
 from routers.keyword_router import router as keyword_router
+from routers.report_router import router as report_router
 
 
 
@@ -158,6 +159,7 @@ app.include_router(hot_topic_router)
 
 app.include_router(trend_router)
 app.include_router(keyword_router)
+app.include_router(report_router)
 
 
 # 鈹鈹 闈欐佹枃浠讹紙鐢熶骇鍓嶇鏋勫缓浜х墿锛夆攢鈹
@@ -194,6 +196,7 @@ async def startup_event():
 
     # ── 自动创建数据库表（首次启动时） ──
 
+    from models.report_model import Report  # noqa: F811  ensure table is registered
     from db.mysql_config import create_tables
 
     try:

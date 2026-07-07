@@ -10,6 +10,8 @@ const Dashboard = lazy(() => import('./pages/Dashboard'))
 const OpinionListPage = lazy(() => import('./pages/OpinionListPage'))
 const HotTopicListPage = lazy(() => import('./pages/HotTopicListPage'))
 const TrendAnalysisPage = lazy(() => import('./pages/TrendAnalysisPage'))
+const ReportListPage = lazy(() => import('./pages/ReportListPage'))
+const ReportDetailPage = lazy(() => import('./pages/ReportDetailPage'))
 
 const PageLoader = () => (
   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
@@ -49,6 +51,8 @@ const App: React.FC = () => (
         <Route path="opinion/list" element={<Suspense fallback={<PageLoader />}><OpinionListPage /></Suspense>} />
         <Route path="hot-topic/list" element={<Suspense fallback={<PageLoader />}><HotTopicListPage /></Suspense>} />
         <Route path="trend-analysis" element={<Suspense fallback={<PageLoader />}><TrendAnalysisPage /></Suspense>} />
+        <Route path="report/list" element={<Suspense fallback={<PageLoader />}><ReportListPage /></Suspense>} />
+        <Route path="report/:id" element={<Suspense fallback={<PageLoader />}><ReportDetailPage /></Suspense>} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>

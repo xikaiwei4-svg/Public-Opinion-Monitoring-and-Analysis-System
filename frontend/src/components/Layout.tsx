@@ -2,7 +2,7 @@ import React from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { Layout as AntLayout, Menu, Typography } from 'antd'
 import {
-  DashboardOutlined, MessageOutlined, FireOutlined, LineChartOutlined,
+  DashboardOutlined, MessageOutlined, FireOutlined, LineChartOutlined, FileTextOutlined,
 } from '@ant-design/icons'
 import Footer from './Footer'
 import './Layout.css'
@@ -15,6 +15,7 @@ const menuItems = [
   { key: '/opinion/list', icon: <MessageOutlined />, label: '舆情管理' },
   { key: '/hot-topic/list', icon: <FireOutlined />, label: '热点话题' },
   { key: '/trend-analysis', icon: <LineChartOutlined />, label: '趋势分析' },
+  { key: '/report/list', icon: <FileTextOutlined />, label: '智能报告' },
 ]
 
 const Layout: React.FC = () => {
